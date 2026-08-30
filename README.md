@@ -1,5 +1,9 @@
 # FolioFold
 
+[![CI](https://github.com/fmbabacan/FolioFold/actions/workflows/ci.yml/badge.svg)](https://github.com/fmbabacan/FolioFold/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![macOS](https://img.shields.io/badge/macOS-15%2B-black.svg)](#requirements)
+
 FolioFold is a native, privacy-focused macOS workspace for creating, editing, converting, organizing, signing, and exporting PDF and Folio documents. Document processing stays on the Mac.
 
 Thank you for using and supporting FolioFold. If you encounter a problem or have an idea, contact [fatihmehmet@babacan.co](mailto:fatihmehmet@babacan.co).
@@ -47,6 +51,12 @@ FolioFold performs document operations locally. A visual signature is an image a
 ## Support
 
 For bug reports, installation problems, and feature requests, email [fatihmehmet@babacan.co](mailto:fatihmehmet@babacan.co). Please include the FolioFold version, macOS version, and steps that reproduce the issue.
+
+Public bug reports and feature requests can also be submitted through [GitHub Issues](https://github.com/fmbabacan/FolioFold/issues). Security reports must follow [SECURITY.md](SECURITY.md) and should not be posted publicly.
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 

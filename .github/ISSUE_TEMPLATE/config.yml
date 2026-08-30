@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: mailto:fatihmehmet@babacan.co?subject=FolioFold%20Security
+    about: Report security vulnerabilities privately.
+  - name: Support
+    url: mailto:fatihmehmet@babacan.co?subject=FolioFold%20Support
+    about: Ask for installation or usage help.
