@@ -9,19 +9,22 @@ public struct FolioPackageManifest: Codable, Equatable, Sendable {
         public var derivationVersion: Int
         public var iterations: Int
         public var salt: Data
+        public var passwordVerifier: Data?
 
         public init(
             algorithm: String = "AES-256-GCM",
             keyDerivation: String = "PBKDF2-HMAC-SHA256",
-            derivationVersion: Int = 1,
+            derivationVersion: Int = 2,
             iterations: Int = 200_000,
-            salt: Data
+            salt: Data,
+            passwordVerifier: Data? = nil
         ) {
             self.algorithm = algorithm
             self.keyDerivation = keyDerivation
             self.derivationVersion = derivationVersion
             self.iterations = iterations
             self.salt = salt
+            self.passwordVerifier = passwordVerifier
         }
     }
 
@@ -82,16 +85,30 @@ public enum FolioPackageStore {
         let manager = FileManager.default
         let parent = destination.deletingLastPathComponent()
         try manager.createDirectory(at: parent, withIntermediateDirectories: true)
-        let temporary = parent.appendingPathComponent(".(destination.lastPathComponent).(UUID().uuidString).tmp", isDirectory: true)
+        let temporary = parent.appendingPathComponent(
+            ".\(destination.lastPathComponent).\(UUID().uuidString).tmp",
+            isDirectory: true
+        )
         defer { try? manager.removeItem(at: temporary) }
         try manager.createDirectory(at: temporary, withIntermediateDirectories: true)
 
-        let documentData = try FolioDocumentCodec.encode(document)
+        let packagedDocument = try packageResources(from: document, into: temporary)
+        let documentData = try FolioDocumentCodec.encode(packagedDocument)
         let manifest: FolioPackageManifest
         if let password {
-            let settings = FolioPackageManifest.Encryption(salt: randomData(count: 16))
+            var settings = FolioPackageManifest.Encryption(salt: randomData(count: 16))
             let key = try deriveKey(password: password, settings: settings)
-            let sealed = try AES.GCM.seal(documentData, using: key)
+            settings.passwordVerifier = passwordVerifier(for: key)
+            let authenticatedManifest = FolioPackageManifest(
+                formatVersion: FormatVersion(major: 1),
+                documentPath: "document.enc",
+                encryption: settings
+            )
+            let sealed = try AES.GCM.seal(
+                documentData,
+                using: key,
+                authenticating: try authenticatedManifestData(authenticatedManifest)
+            )
             guard let combined = sealed.combined else { throw FolioPackageError.invalidPackage }
             try combined.write(to: temporary.appendingPathComponent("document.enc"), options: .atomic)
             manifest = FolioPackageManifest(
@@ -115,7 +132,15 @@ public enum FolioPackageStore {
         _ = try open(temporary, password: password)
 
         if interruptionPoint == .beforeReplace {
-            try Data().write(to: recoveryURL(for: destination), options: .atomic)
+            let recovery = recoveryURL(for: destination)
+            let recoveryCandidate = parent.appendingPathComponent(
+                ".\(destination.lastPathComponent).\(UUID().uuidString).recovery.tmp",
+                isDirectory: true
+            )
+            defer { try? manager.removeItem(at: recoveryCandidate) }
+            try manager.copyItem(at: temporary, to: recoveryCandidate)
+            _ = try open(recoveryCandidate, password: password)
+            try replace(recovery, with: recoveryCandidate)
             throw FolioPackageError.interrupted
         }
 
@@ -137,29 +162,49 @@ public enum FolioPackageStore {
         let payload: Data
         do { payload = try Data(contentsOf: payloadURL) }
         catch { throw FolioPackageError.invalidPackage }
-        if digest(payload) != expectedChecksum {
-            throw FolioPackageError.invalidPackage
-        }
-
         let documentData: Data
         if let settings = manifest.encryption {
             guard let password else { throw FolioPackageError.passwordRequired }
+            let payloadChecksumMatches = digest(payload) == expectedChecksum
             do {
                 let key = try deriveKey(password: password, settings: settings)
+                if settings.derivationVersion == 2 {
+                    guard let expectedVerifier = settings.passwordVerifier else {
+                        throw FolioPackageError.unsupportedEncryption
+                    }
+                    guard passwordVerifier(for: key) == expectedVerifier else {
+                        throw FolioPackageError.authenticationFailed
+                    }
+                }
                 let box = try AES.GCM.SealedBox(combined: payload)
-                documentData = try AES.GCM.open(box, using: key)
+                if settings.derivationVersion == 2 {
+                    documentData = try AES.GCM.open(
+                        box,
+                        using: key,
+                        authenticating: try authenticatedManifestData(manifest)
+                    )
+                } else {
+                    documentData = try AES.GCM.open(box, using: key)
+                }
             } catch let error as FolioPackageError {
                 throw error
             } catch {
+                if payloadChecksumMatches {
+                    throw FolioPackageError.manifestAuthenticationFailed
+                }
                 throw FolioPackageError.authenticationFailed
             }
         } else {
+            guard digest(payload) == expectedChecksum else {
+                throw FolioPackageError.invalidPackage
+            }
             documentData = payload
         }
 
         let opened: OpenedFolioDocument
         do { opened = try FolioDocumentCodec.decode(documentData) }
         catch { throw FolioPackageError.invalidPackage }
+        try verifyResources(in: opened.document, packageURL: packageURL)
         let recovery: WorkspaceSession.RecoveryState = FileManager.default.fileExists(
             atPath: recoveryURL(for: packageURL).path
         ) ? .available : .none
@@ -183,22 +228,18 @@ public enum FolioPackageStore {
             try manager.moveItem(at: temporary, to: destination)
             return
         }
-        let backup = destination.deletingLastPathComponent()
-            .appendingPathComponent(".(destination.lastPathComponent).(UUID().uuidString).backup", isDirectory: true)
-        try manager.moveItem(at: destination, to: backup)
-        do {
-            try manager.moveItem(at: temporary, to: destination)
-            try manager.removeItem(at: backup)
-        } catch {
-            try? manager.moveItem(at: backup, to: destination)
-            throw error
-        }
+        _ = try manager.replaceItemAt(
+            destination,
+            withItemAt: temporary,
+            backupItemName: nil,
+            options: []
+        )
     }
 
     private static func deriveKey(password: String, settings: FolioPackageManifest.Encryption) throws -> SymmetricKey {
         guard settings.algorithm == "AES-256-GCM",
               settings.keyDerivation == "PBKDF2-HMAC-SHA256",
-              settings.derivationVersion == 1,
+              (1 ... 2).contains(settings.derivationVersion),
               settings.salt.count >= 16,
               (minimumIterations ... maximumIterations).contains(settings.iterations) else {
             throw FolioPackageError.unsupportedEncryption
@@ -224,6 +265,90 @@ public enum FolioPackageStore {
         }
         guard status == kCCSuccess else { throw FolioPackageError.unsupportedEncryption }
         return SymmetricKey(data: material)
+    }
+
+    private static func authenticatedManifestData(_ manifest: FolioPackageManifest) throws -> Data {
+        let authenticated = FolioPackageManifest(
+            formatVersion: manifest.formatVersion,
+            documentPath: manifest.documentPath,
+            encryption: manifest.encryption
+        )
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        return try encoder.encode(authenticated)
+    }
+
+    private static func passwordVerifier(for key: SymmetricKey) -> Data {
+        Data(HMAC<SHA256>.authenticationCode(
+            for: Data("FolioFold password verifier v1".utf8),
+            using: key
+        ))
+    }
+
+    private static func packageResources(
+        from document: FolioDocument,
+        into packageURL: URL
+    ) throws -> FolioDocument {
+        var packaged = document
+        if !document.assets.isEmpty {
+            let assetsDirectory = packageURL.appendingPathComponent("assets", isDirectory: true)
+            try FileManager.default.createDirectory(
+                at: assetsDirectory,
+                withIntermediateDirectories: true
+            )
+            packaged.assets = try document.assets.enumerated().map { index, asset in
+                let source = URL(fileURLWithPath: asset.path)
+                let fileName = "\(index)-\(source.lastPathComponent)"
+                let relativePath = "assets/\(fileName)"
+                let data = try Data(contentsOf: source)
+                try data.write(
+                    to: assetsDirectory.appendingPathComponent(fileName),
+                    options: .atomic
+                )
+                return FolioAsset(
+                    path: relativePath,
+                    mediaType: asset.mediaType,
+                    checksum: digest(data)
+                )
+            }
+        }
+
+        if let sourcePDF = document.sourcePDF {
+            let source = URL(fileURLWithPath: sourcePDF.path)
+            let sourceDirectory = packageURL.appendingPathComponent("source", isDirectory: true)
+            try FileManager.default.createDirectory(
+                at: sourceDirectory,
+                withIntermediateDirectories: true
+            )
+            let data = try Data(contentsOf: source)
+            try data.write(
+                to: sourceDirectory.appendingPathComponent("original.pdf"),
+                options: .atomic
+            )
+            packaged.sourcePDF = SourcePDFInfo(
+                path: "source/original.pdf",
+                checksum: digest(data),
+                pageCount: sourcePDF.pageCount
+            )
+        }
+        return packaged
+    }
+
+    private static func verifyResources(in document: FolioDocument, packageURL: URL) throws {
+        for asset in document.assets {
+            let resourceURL = try safeURL(for: asset.path, in: packageURL)
+            guard let data = try? Data(contentsOf: resourceURL),
+                  digest(data) == asset.checksum else {
+                throw FolioPackageError.invalidPackage
+            }
+        }
+        if let sourcePDF = document.sourcePDF {
+            let resourceURL = try safeURL(for: sourcePDF.path, in: packageURL)
+            guard let data = try? Data(contentsOf: resourceURL),
+                  digest(data) == sourcePDF.checksum else {
+                throw FolioPackageError.invalidPackage
+            }
+        }
     }
 
     private static func safeURL(for path: String, in packageURL: URL) throws -> URL {

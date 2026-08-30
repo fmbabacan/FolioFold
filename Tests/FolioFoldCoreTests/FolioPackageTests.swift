@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import Testing
 @testable import FolioFoldCore
@@ -31,10 +32,32 @@ struct FolioPackageTests {
         let secondManifest = try JSONDecoder().decode(FolioPackageManifest.self, from: Data(contentsOf: second.appendingPathComponent("manifest.json")))
 
         #expect(firstManifest.encryption?.salt != secondManifest.encryption?.salt)
+        #expect(firstManifest.encryption?.derivationVersion == 2)
+        #expect(firstManifest.encryption?.passwordVerifier != nil)
         #expect(throws: FolioPackageError.authenticationFailed) {
             try FolioPackageStore.open(first, password: "wrong")
         }
         #expect(try FolioPackageStore.open(first, password: "correct horse").document.formatVersion.major == 1)
+    }
+
+    @Test("version two encryption requires its password verifier")
+    func versionTwoEncryptionRequiresPasswordVerifier() throws {
+        let directory = temporaryURL("missing-verifier.foliofold")
+        defer { try? FileManager.default.removeItem(at: directory.deletingLastPathComponent()) }
+        try FolioPackageStore.save(.blank(), to: directory, password: "secret")
+        let manifestURL = directory.appendingPathComponent("manifest.json")
+        var object = try #require(
+            JSONSerialization.jsonObject(with: Data(contentsOf: manifestURL)) as? [String: Any]
+        )
+        var encryption = try #require(object["encryption"] as? [String: Any])
+        encryption.removeValue(forKey: "passwordVerifier")
+        object["encryption"] = encryption
+        try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+            .write(to: manifestURL)
+
+        #expect(throws: FolioPackageError.unsupportedEncryption) {
+            try FolioPackageStore.open(directory, password: "secret")
+        }
     }
 
     @Test("authenticated encryption rejects modified package data")
@@ -174,11 +197,21 @@ struct FolioPackageTests {
         let directory = temporaryURL("newer.foliofold")
         defer { try? FileManager.default.removeItem(at: directory.deletingLastPathComponent()) }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let manifest = FolioPackageManifest(formatVersion: FormatVersion(major: 2), documentPath: "document.json")
-        try JSONEncoder().encode(manifest).write(to: directory.appendingPathComponent("manifest.json"))
         var document = FolioDocument.blank()
         document.formatVersion = FormatVersion(major: 2)
-        try FolioDocumentCodec.encode(document).write(to: directory.appendingPathComponent("document.json"))
+        let documentData = try FolioDocumentCodec.encode(document)
+        try documentData.write(to: directory.appendingPathComponent("document.json"))
+        let checksum = SHA256.hash(data: documentData)
+            .map { String(format: "%02x", $0) }
+            .joined()
+        let manifest = FolioPackageManifest(
+            formatVersion: FormatVersion(major: 2),
+            documentPath: "document.json",
+            documentChecksum: checksum
+        )
+        try JSONEncoder().encode(manifest).write(
+            to: directory.appendingPathComponent("manifest.json")
+        )
 
         #expect(try FolioPackageStore.open(directory).isReadOnly)
     }
