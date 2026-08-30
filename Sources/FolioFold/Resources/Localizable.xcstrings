@@ -1,0 +1,31 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Add PDFs and arrange them in the order they should be combined." : {},
+    "Cancel" : {},
+    "Changes to %@ will be lost." : {},
+    "Choose pages or ranges to export as separate PDFs." : {},
+    "Close %@ tab" : {},
+    "Close Unsaved Session?" : {},
+    "Close Without Saving" : {},
+    "Convert" : {},
+    "Convert supported local files without uploading them." : {},
+    "Create" : {},
+    "Create or open a document to begin." : {},
+    "FolioFold" : {},
+    "Merge" : {},
+    "No Open Session" : {},
+    "No recent documents" : {},
+    "Open" : {},
+    "Open…" : {},
+    "Recents" : {},
+    "Recovered" : {},
+    "Select %@ tab" : {},
+    "Split" : {},
+    "Start writing with blocks. Pin an item when it needs a fixed page position." : {},
+    "The source PDF will remain unchanged until you explicitly export or replace it." : {},
+    "Unsaved changes" : {},
+    "Workspace tabs" : {}
+  },
+  "version" : "1.0"
+}

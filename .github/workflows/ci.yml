@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Apache license
+        run: grep -q "Apache License" LICENSE
+      - name: Verify dependency-free package
+        run: swift package show-dependencies --format json | python3 -c 'import json,sys; assert json.load(sys.stdin)["dependencies"] == []'
+      - name: Validate String Catalog
+        run: python3 -m json.tool Sources/FolioFold/Resources/Localizable.xcstrings >/dev/null
+      - name: Test
+        run: swift test
+      - name: Build release
+        run: swift build -c release
+      - name: Enforce 40 MB executable budget
+        run: test $(stat -f%z .build/release/FolioFold) -lt 41943040
