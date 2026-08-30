@@ -39,7 +39,11 @@ cat > "${contents}/Info.plist" <<PLIST
 </plist>
 PLIST
 
-codesign --force --deep --options runtime --timestamp=none --sign "${identity}" "${app_bundle}"
+if [[ "${identity}" == "-" ]]; then
+  codesign --force --deep --options runtime --timestamp=none --sign "${identity}" "${app_bundle}"
+else
+  codesign --force --deep --options runtime --timestamp --sign "${identity}" "${app_bundle}"
+fi
 codesign --verify --deep --strict --verbose=2 "${app_bundle}"
 ditto -c -k --keepParent --sequesterRsrc "${app_bundle}" "${archive}"
 

@@ -1,5 +1,7 @@
 # FolioFold v1 Release Checklist
 
+Public application downloads are published through GitHub Releases, not GitHub Packages. Each release must contain notarized Apple Silicon and Intel application archives plus their SHA-256 checksum files.
+
 ## Automated gates
 
 - Run the complete test suite on macOS 15 and the current macOS release.
@@ -20,6 +22,23 @@
 Signing identities, App Store Connect credentials, notarization credentials, and Homebrew repository access are release-operator secrets and must never be stored in this repository.
 
 Run `scripts/package-release.sh arm64` or `scripts/package-release.sh x86_64` to create a signed archive and checksum. The signing identity is read from `FOLIOFOLD_SIGNING_IDENTITY`; omission produces an ad-hoc signed local verification build. After configuring an Apple notarytool keychain profile, set `FOLIOFOLD_NOTARY_PROFILE` and run `scripts/notarize-release.sh <archive.zip>`.
+
+For a local Developer ID release, first install a `Developer ID Application` certificate and its private key in the login Keychain. Then create a notarization profile without placing credentials in the repository:
+
+```shell
+xcrun notarytool store-credentials FolioFoldNotary
+```
+
+Build and notarize each architecture with the exact identity shown by `security find-identity -v -p codesigning`:
+
+```shell
+export FOLIOFOLD_SIGNING_IDENTITY='Developer ID Application: Your Name (TEAMID)'
+export FOLIOFOLD_NOTARY_PROFILE='FolioFoldNotary'
+FOLIOFOLD_VERSION=0.1.0 scripts/package-release.sh arm64
+scripts/notarize-release.sh dist/FolioFold-0.1.0-arm64.zip
+```
+
+Repeat on an Intel Mac or trusted Intel build environment for `x86_64`. Never publish an ad-hoc signed archive as an official release.
 
 Each architecture-specific archive contains a consistently named `FolioFold.app`, matching the Homebrew Cask and Finder installation name. Generated release artifacts are written to the ignored `dist/` directory.
 

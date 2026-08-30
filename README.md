@@ -6,6 +6,30 @@
 
 FolioFold is a native, privacy-focused macOS workspace for creating, editing, converting, organizing, signing, and exporting PDF and Folio documents. Document processing stays on the Mac.
 
+## Download and install
+
+FolioFold requires macOS 15 or later. Download the latest notarized build from the [Releases page](https://github.com/fmbabacan/FolioFold/releases/latest).
+
+1. Choose `FolioFold-<version>-arm64.zip` for Apple Silicon Macs (M1, M2, M3, M4, or newer).
+2. Choose `FolioFold-<version>-x86_64.zip` for Intel Macs.
+3. Open the downloaded ZIP file.
+4. Drag `FolioFold.app` into the Applications folder.
+5. Open FolioFold from Applications. A notarized public release should open normally without bypassing Gatekeeper.
+
+If you are unsure which Mac you have, choose Apple menu > About This Mac and check whether the processor or chip says Apple or Intel.
+
+No public binary has been released yet. Until the first signed and notarized release appears on the Releases page, clone the repository and follow [Build from source](#build-from-source).
+
+### Homebrew
+
+Homebrew installation will be enabled after the first notarized release and the FolioFold tap are published:
+
+```shell
+brew install --cask fmbabacan/tap/foliofold
+```
+
+GitHub Packages is not used for the FolioFold macOS application. Installable application archives belong in GitHub Releases; Homebrew Cask points to those same notarized release files.
+
 Thank you for using and supporting FolioFold. If you encounter a problem or have an idea, contact [fatihmehmet@babacan.co](mailto:fatihmehmet@babacan.co).
 
 ## Highlights
@@ -24,14 +48,6 @@ Thank you for using and supporting FolioFold. If you encounter a problem or have
 - macOS 15 or later
 - Apple Silicon or Intel Mac, according to the downloaded package
 
-## Install
-
-Download the archive for the Mac architecture from the latest GitHub Release, verify the published SHA-256 checksum, unzip it, and move FolioFold.app to /Applications.
-
-After the first notarized public Homebrew release is published, install with: brew install --cask fmbabacan/tap/foliofold
-
-The Mac App Store build will use the same document engine. App Store updates are delivered by macOS; GitHub and Homebrew installations use their respective release channels.
-
 ## Updates
 
 Choose Help > Check for Updates in FolioFold. GitHub installations open the latest release page. Homebrew users can run brew update followed by brew upgrade --cask foliofold.
@@ -40,7 +56,19 @@ The current version is visible in the Help menu and in the first-launch welcome 
 
 ## Build from source
 
-Run swift build, swift test, and swift build -c release. Create a local application archive with FOLIOFOLD_VERSION=0.1.0 scripts/package-release.sh arm64.
+Install Xcode 26 or later, clone the repository, and run:
+
+```shell
+swift build
+swift test
+swift build -c release
+```
+
+Create an ad-hoc signed local application archive with:
+
+```shell
+FOLIOFOLD_VERSION=0.1.0 scripts/package-release.sh arm64
+```
 
 Official public releases are signed with an Apple Developer ID Application certificate, notarized by Apple, and published with SHA-256 checksums.
 
