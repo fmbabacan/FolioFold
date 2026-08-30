@@ -5,6 +5,7 @@ architecture=${1:-$(uname -m)}
 version=${FOLIOFOLD_VERSION:-0.1.0}
 identity=${FOLIOFOLD_SIGNING_IDENTITY:--}
 output_root=${FOLIOFOLD_OUTPUT_DIR:-dist}
+build_path=${FOLIOFOLD_BUILD_PATH:-.build}
 app_name=FolioFold
 staging_root="${output_root}/.staging-${version}-${architecture}"
 app_bundle="${staging_root}/${app_name}.app"
@@ -17,8 +18,14 @@ rm -rf "${staging_root}" "${archive}" "${archive}.sha256"
 mkdir -p "${macos}" "${resources}"
 trap 'rm -rf "${staging_root}"' EXIT
 
-swift build -c release
-cp .build/release/FolioFold "${macos}/FolioFold"
+swift build -c release --arch "${architecture}" --build-path "${build_path}"
+executable="${build_path}/release/FolioFold"
+test -x "${executable}"
+file "${executable}" | grep -q "${architecture}" || {
+  print -u2 "Built executable does not contain expected architecture: ${architecture}"
+  exit 1
+}
+cp "${executable}" "${macos}/FolioFold"
 
 cat > "${contents}/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -45,6 +52,10 @@ else
   codesign --force --deep --options runtime --timestamp --sign "${identity}" "${app_bundle}"
 fi
 codesign --verify --deep --strict --verbose=2 "${app_bundle}"
+file "${macos}/FolioFold" | grep -q "${architecture}" || {
+  print -u2 "Packaged application does not contain expected architecture: ${architecture}"
+  exit 1
+}
 ditto -c -k --keepParent --sequesterRsrc "${app_bundle}" "${archive}"
 
 size=$(stat -f%z "${archive}")
