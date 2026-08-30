@@ -14,4 +14,4 @@ test -d "${app}"
 xcrun stapler staple "${app}"
 spctl --assess --type execute --verbose=2 "${app}"
 ditto -c -k --keepParent --sequesterRsrc "${app}" "${archive}"
-shasum -a 256 "${archive}" > "${archive}.sha256"
+(cd "${archive:h}" && shasum -a 256 "${archive:t}" > "${archive:t}.sha256")

@@ -53,6 +53,6 @@ if (( size >= 41943040 )); then
   exit 1
 fi
 
-shasum -a 256 "${archive}" > "${archive}.sha256"
+(cd "${archive:h}" && shasum -a 256 "${archive:t}" > "${archive:t}.sha256")
 print "Created ${archive}"
 print "Created ${archive}.sha256"
