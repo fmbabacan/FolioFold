@@ -2,3 +2,8 @@
 DerivedData/
 *.xcuserstate
 .DS_Store
+dist/
+.codex/
+DESIGN.md
+PLAN (1).md
+PRODUCT.md

@@ -15,9 +15,90 @@ jobs:
         run: swift package show-dependencies --format json | python3 -c 'import json,sys; assert json.load(sys.stdin)["dependencies"] == []'
       - name: Validate String Catalog
         run: python3 -m json.tool Sources/FolioFold/Resources/Localizable.xcstrings >/dev/null
+      - name: Verify accessibility and localization coverage
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          source = Path('Sources/FolioFold/FolioFoldApp.swift').read_text()
+          catalog = json.loads(Path('Sources/FolioFold/Resources/Localizable.xcstrings').read_text())
+          keys = set(catalog.get('strings', {}))
+          required_catalog_entries = {
+              'Create',
+              'Open',
+              'Merge',
+              'Split',
+              'Convert',
+              'Recents',
+              'Export PDF…',
+              'Page thumbnails',
+              'Password Required',
+              'PDF Password Required',
+              'Recovery Data Available',
+              'Document Changed Outside FolioFold',
+          }
+          missing = sorted(required_catalog_entries - keys)
+          assert not missing, f'Missing String Catalog entries: {missing}'
+
+          required_accessibility_labels = {
+              'Workspace tabs',
+              'Document content',
+              'Page thumbnails',
+              'Operation progress',
+              'Remove recent document',
+          }
+          absent = sorted(label for label in required_accessibility_labels if label not in source)
+          assert not absent, f'Missing accessibility labels: {absent}'
+          PY
+      - name: Verify offline-only source tree
+        run: |
+          ! rg -n 'URLSession|NWConnection|Network\.|WebKit|WKWebView' Sources --glob '*.swift'
       - name: Test
         run: swift test
       - name: Build release
         run: swift build -c release
+      - name: Runtime smoke test
+        run: |
+          chmod +x scripts/runtime-smoke.sh
+          scripts/runtime-smoke.sh .build/release/FolioFold
+      - name: UI smoke test
+        run: |
+          chmod +x scripts/ui-smoke.sh
+          scripts/ui-smoke.sh .build/release/FolioFold
       - name: Enforce 40 MB executable budget
         run: test $(stat -f%z .build/release/FolioFold) -lt 41943040
+      - name: Enforce compressed package budget
+        run: |
+          ditto -c -k --sequesterRsrc .build/release/FolioFold FolioFold-${{ runner.arch }}.zip
+          test $(stat -f%z FolioFold-${{ runner.arch }}.zip) -lt 41943040
+      - name: Verify application bundle packaging
+        run: |
+          chmod +x scripts/package-release.sh scripts/notarize-release.sh
+          FOLIOFOLD_VERSION=0.1.0 scripts/package-release.sh ${{ runner.arch }}
+          test -s dist/FolioFold-0.1.0-${{ runner.arch }}.zip
+          test -s dist/FolioFold-0.1.0-${{ runner.arch }}.zip.sha256
+      - name: Upload release executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: FolioFold-${{ runner.arch }}
+          path: FolioFold-${{ runner.arch }}.zip
+
+  intel-build:
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test x86_64
+        run: |
+          swift test
+          swift build -c release
+          test "$(file .build/release/FolioFold)" != ""
+          file .build/release/FolioFold | grep -q x86_64
+      - name: Package Intel release
+        run: |
+          ditto -c -k --sequesterRsrc .build/release/FolioFold FolioFold-x86_64.zip
+          test $(stat -f%z FolioFold-x86_64.zip) -lt 41943040
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FolioFold-x86_64
+          path: FolioFold-x86_64.zip

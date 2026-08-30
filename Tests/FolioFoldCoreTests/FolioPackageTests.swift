@@ -96,6 +96,45 @@ struct FolioPackageTests {
         #expect(recovered.document.flow[0].text == "replacement")
     }
 
+    @Test("recovery snapshots preserve the primary package and can be discarded")
+    func recoverySnapshotsAreIndependent() throws {
+        let directory = temporaryURL("snapshot.foliofold")
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+            try? FolioPackageStore.discardRecovery(for: directory)
+        }
+        var primary = FolioDocument.blank()
+        primary.flow[0].text = "primary"
+        try FolioPackageStore.save(primary, to: directory)
+
+        var draft = primary
+        draft.flow[0].text = "autosaved draft"
+        try FolioPackageStore.saveRecovery(draft, for: directory)
+
+        #expect(try FolioPackageStore.open(directory).document.flow[0].text == "primary")
+        #expect(try FolioPackageStore.open(directory).recoveryState == .available)
+        #expect(try FolioPackageStore.openRecovery(for: directory).document.flow[0].text == "autosaved draft")
+
+        try FolioPackageStore.discardRecovery(for: directory)
+        #expect(try FolioPackageStore.open(directory).recoveryState == .none)
+    }
+
+    @Test("encrypted recovery snapshots require the original password")
+    func encryptedRecoverySnapshot() throws {
+        let directory = temporaryURL("encrypted-recovery.foliofold")
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+            try? FolioPackageStore.discardRecovery(for: directory)
+        }
+        try FolioPackageStore.save(.blank(), to: directory, password: "secret")
+        try FolioPackageStore.saveRecovery(.blank(), for: directory, password: "secret")
+
+        #expect(throws: FolioPackageError.passwordRequired) {
+            try FolioPackageStore.openRecovery(for: directory)
+        }
+        #expect(try FolioPackageStore.openRecovery(for: directory, password: "secret").document.formatVersion.major == 1)
+    }
+
     @Test("a read only package cannot be saved through the opened package API")
     func readOnlyPackageSaveIsRejected() throws {
         let directory = temporaryURL("readonly.foliofold")

@@ -1,0 +1,27 @@
+cask "foliofold" do
+  version "VERSION"
+  sha256 arm: "ARM64_SHA256", intel: "X86_64_SHA256"
+
+  on_arm do
+    url "https://github.com/fmbabacan/FolioFold/releases/download/v#{version}/FolioFold-#{version}-arm64.zip"
+  end
+  on_intel do
+    url "https://github.com/fmbabacan/FolioFold/releases/download/v#{version}/FolioFold-#{version}-x86_64.zip"
+  end
+
+  name "FolioFold"
+  desc "Private, native PDF and structured document workspace for macOS"
+  homepage "https://github.com/fmbabacan/FolioFold"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  app "FolioFold.app"
+
+  zap trash: [
+    "~/Library/Preferences/app.foliofold.FolioFold.plist",
+    "~/Library/Saved Application State/app.foliofold.FolioFold.savedState",
+  ]
+end

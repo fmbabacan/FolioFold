@@ -222,6 +222,32 @@ public enum FolioPackageStore {
         try open(recoveryURL(for: packageURL), password: password)
     }
 
+    public static func saveRecovery(
+        _ document: FolioDocument,
+        for packageURL: URL,
+        password: String? = nil
+    ) throws {
+        let manager = FileManager.default
+        let recovery = recoveryURL(for: packageURL)
+        let parent = recovery.deletingLastPathComponent()
+        try manager.createDirectory(at: parent, withIntermediateDirectories: true)
+        let candidate = parent.appendingPathComponent(
+            ".\(recovery.lastPathComponent).\(UUID().uuidString).tmp",
+            isDirectory: true
+        )
+        defer { try? manager.removeItem(at: candidate) }
+
+        try save(document, to: candidate, password: password)
+        _ = try open(candidate, password: password)
+        try replace(recovery, with: candidate)
+    }
+
+    public static func discardRecovery(for packageURL: URL) throws {
+        let recovery = recoveryURL(for: packageURL)
+        guard FileManager.default.fileExists(atPath: recovery.path) else { return }
+        try FileManager.default.removeItem(at: recovery)
+    }
+
     private static func replace(_ destination: URL, with temporary: URL) throws {
         let manager = FileManager.default
         guard manager.fileExists(atPath: destination.path) else {

@@ -93,6 +93,8 @@ public struct OverlayElement: Codable, Equatable, Identifiable, Sendable {
     fileprivate let originalFlowIndex: Int
     fileprivate let block: Block
 
+    public var contentBlock: Block { block }
+
     fileprivate init(id: UUID = UUID(), block: Block, pageID: UUID, frame: FolioRect, rotationDegrees: Double, zIndex: Int, isLocked: Bool, originalFlowIndex: Int) {
         self.id = id
         self.sourceBlockID = block.id
