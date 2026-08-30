@@ -86,6 +86,8 @@ Public bug reports and feature requests can also be submitted through [GitHub Is
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
 
+Start with the [architecture guide](docs/ARCHITECTURE.md), then run `scripts/verify.sh` before opening a pull request. The [publication roadmap](docs/ROADMAP.md) explains the GitHub, Homebrew, and future App Store phases.
+
 ## License
 
 FolioFold is licensed under the Apache License 2.0. See [LICENSE](LICENSE).

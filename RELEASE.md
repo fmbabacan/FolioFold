@@ -1,6 +1,6 @@
 # FolioFold v1 Release Checklist
 
-Public application downloads are published through GitHub Releases, not GitHub Packages. Each release must contain notarized Apple Silicon and Intel application archives plus their SHA-256 checksum files.
+Public application downloads are published through GitHub Releases, not GitHub Packages. Each release must contain notarized Apple Silicon and Intel application archives plus their SHA-256 checksum files. The initial process keeps the Developer ID private key in the release operator's Keychain and does not upload a `.p12` private key to GitHub Actions.
 
 ## Automated gates
 
@@ -39,6 +39,8 @@ scripts/notarize-release.sh dist/FolioFold-0.1.0-arm64.zip
 ```
 
 Repeat on an Intel Mac or trusted Intel build environment for `x86_64`. Never publish an ad-hoc signed archive as an official release.
+
+The supported end-to-end commands are documented in [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
 Each architecture-specific archive contains a consistently named `FolioFold.app`, matching the Homebrew Cask and Finder installation name. Generated release artifacts are written to the ignored `dist/` directory.
 

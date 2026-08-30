@@ -16,6 +16,8 @@ Thank you for helping improve FolioFold. Bug reports, focused fixes, accessibili
 4. For startup or memory-sensitive changes, run `scripts/runtime-smoke.sh .build/release/FolioFold`.
 5. Open a pull request describing the problem, approach, verification, and user-visible impact.
 
+For the complete local gate, run `scripts/verify.sh`. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for target boundaries and where new code belongs.
+
 Contributions must preserve local-first document processing and must not introduce telemetry, document uploads, or network dependencies without an explicit project decision.
 
 ## Security reports

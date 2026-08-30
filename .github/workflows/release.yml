@@ -1,10 +1,12 @@
-name: Release
+name: Release verification
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing version tag, for example v0.1.0
+        description: Published version tag, for example v0.1.0
         required: true
         type: string
 
@@ -12,113 +14,42 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build ${{ matrix.architecture }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - architecture: arm64
-            runner: macos-15
-          - architecture: x86_64
-            runner: macos-15-intel
-    runs-on: ${{ matrix.runner }}
-    environment: release
+  verify-release:
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: ${{ inputs.tag }}
-      - name: Validate tag and release credentials
-        env:
-          TAG: ${{ inputs.tag }}
-          CERTIFICATE_P12: ${{ secrets.APPLE_DEVELOPER_ID_P12 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_PASSWORD }}
-          SIGNING_IDENTITY: ${{ secrets.APPLE_DEVELOPER_IDENTITY }}
-          APP_STORE_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
-          APP_STORE_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          APP_STORE_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-        run: |
-          [[ "${TAG}" == v* ]]
-          test -n "${CERTIFICATE_P12}"
-          test -n "${CERTIFICATE_PASSWORD}"
-          test -n "${SIGNING_IDENTITY}"
-          test -n "${APP_STORE_KEY}"
-          test -n "${APP_STORE_KEY_ID}"
-          test -n "${APP_STORE_ISSUER_ID}"
-      - name: Import Developer ID certificate
-        env:
-          CERTIFICATE_P12: ${{ secrets.APPLE_DEVELOPER_ID_P12 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_PASSWORD }}
-        run: |
-          KEYCHAIN=foliofold-release.keychain-db
-          KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
-          echo "${CERTIFICATE_P12}" | base64 --decode > certificate.p12
-          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
-          security set-keychain-settings -lut 21600 "${KEYCHAIN}"
-          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
-          security import certificate.p12 -k "${KEYCHAIN}" -P "${CERTIFICATE_PASSWORD}" -T /usr/bin/codesign
-          security list-keychains -d user -s "${KEYCHAIN}" login.keychain-db
-          security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
-      - name: Configure notarization
-        env:
-          APP_STORE_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
-          APP_STORE_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          APP_STORE_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-        run: |
-          mkdir -p ~/.private_keys
-          printf '%s' "${APP_STORE_KEY}" > ~/.private_keys/AuthKey_${APP_STORE_KEY_ID}.p8
-          xcrun notarytool store-credentials FolioFoldCI \
-            --key ~/.private_keys/AuthKey_${APP_STORE_KEY_ID}.p8 \
-            --key-id "${APP_STORE_KEY_ID}" \
-            --issuer "${APP_STORE_ISSUER_ID}"
-      - name: Build, sign, and notarize
-        env:
-          TAG: ${{ inputs.tag }}
-          ARCHITECTURE: ${{ matrix.architecture }}
-          FOLIOFOLD_SIGNING_IDENTITY: ${{ secrets.APPLE_DEVELOPER_IDENTITY }}
-          FOLIOFOLD_NOTARY_PROFILE: FolioFoldCI
-        run: |
-          export FOLIOFOLD_VERSION=${TAG#v}
-          scripts/package-release.sh "${ARCHITECTURE}"
-          scripts/notarize-release.sh "dist/FolioFold-${FOLIOFOLD_VERSION}-${ARCHITECTURE}.zip"
-      - name: Verify distributable
-        env:
-          TAG: ${{ inputs.tag }}
-          ARCHITECTURE: ${{ matrix.architecture }}
-        run: |
-          VERSION=${TAG#v}
-          test -s "dist/FolioFold-${VERSION}-${ARCHITECTURE}.zip"
-          test -s "dist/FolioFold-${VERSION}-${ARCHITECTURE}.zip.sha256"
-          shasum -a 256 -c "dist/FolioFold-${VERSION}-${ARCHITECTURE}.zip.sha256"
-      - uses: actions/upload-artifact@v5
-        with:
-          name: FolioFold-${{ matrix.architecture }}
-          path: |
-            dist/FolioFold-*.zip
-            dist/FolioFold-*.zip.sha256
-          if-no-files-found: error
-
-  publish:
-    name: Publish GitHub Release
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v5
-        with:
-          pattern: FolioFold-*
-          path: release-assets
-          merge-multiple: true
-      - name: Publish release
+      - name: Download published assets
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          gh release create "${TAG}" \
-            release-assets/FolioFold-*.zip \
-            release-assets/FolioFold-*.zip.sha256 \
-            --repo "${GITHUB_REPOSITORY}" \
-            --verify-tag \
-            --generate-notes \
-            --title "FolioFold ${TAG}"
+          TAG=${EVENT_TAG:-${INPUT_TAG}}
+          test -n "${TAG}"
+          mkdir -p release-assets
+          gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" --dir release-assets
+      - name: Verify required files and checksums
+        run: |
+          test -n "$(find release-assets -name 'FolioFold-*-arm64.zip' -print -quit)"
+          test -n "$(find release-assets -name 'FolioFold-*-x86_64.zip' -print -quit)"
+          test -n "$(find release-assets -name 'FolioFold-*-arm64.zip.sha256' -print -quit)"
+          test -n "$(find release-assets -name 'FolioFold-*-x86_64.zip.sha256' -print -quit)"
+          for checksum in release-assets/*.sha256; do
+            (cd release-assets && shasum -a 256 -c "$(basename "${checksum}")")
+          done
+      - name: Verify signatures, notarization, and architecture
+        run: |
+          for archive in release-assets/*.zip; do
+            work=$(mktemp -d)
+            ditto -x -k "${archive}" "${work}"
+            app="${work}/FolioFold.app"
+            test -d "${app}"
+            codesign --verify --deep --strict --verbose=2 "${app}"
+            spctl --assess --type execute --verbose=2 "${app}"
+            if [[ "${archive}" == *-arm64.zip ]]; then
+              file "${app}/Contents/MacOS/FolioFold" | grep -q arm64
+            else
+              file "${app}/Contents/MacOS/FolioFold" | grep -q x86_64
+            fi
+            rm -rf "${work}"
+          done
