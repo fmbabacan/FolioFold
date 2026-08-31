@@ -34,8 +34,8 @@ Build and notarize each architecture with the exact identity shown by `security 
 ```shell
 export FOLIOFOLD_SIGNING_IDENTITY='Developer ID Application: Your Name (TEAMID)'
 export FOLIOFOLD_NOTARY_PROFILE='FolioFoldNotary'
-FOLIOFOLD_VERSION=0.1.0 scripts/package-release.sh arm64
-scripts/notarize-release.sh dist/FolioFold-0.1.0-arm64.zip
+FOLIOFOLD_VERSION=0.2.0 scripts/package-release.sh arm64
+scripts/notarize-release.sh dist/FolioFold-0.2.0-arm64.zip
 ```
 
 Repeat on an Intel Mac or trusted Intel build environment for `x86_64`. Never publish an ad-hoc signed archive as an official release.
@@ -46,9 +46,10 @@ Each architecture-specific archive contains a consistently named `FolioFold.app`
 
 ## Distribution channels
 
+- Release description: identify `arm64` as the download for Apple Silicon Macs and `x86_64` as the download for Intel Macs.
 - GitHub Releases: upload the notarized arm64 and x86_64 archives with checksums.
 - Homebrew Cask: update URLs and hashes only after the notarized GitHub assets are final.
-- Homebrew Cask: replace the placeholders in `Cask/foliofold.rb.template` with the final version and published archive hashes.
+- Homebrew Cask: replace the placeholders in `Distribution/Homebrew/foliofold.rb.template` with the final version and published archive hashes.
 - Mac App Store: use the same sandbox-compatible feature set and verify that document processing does not require network access.
 
 ## Manual acceptance

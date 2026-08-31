@@ -10,7 +10,7 @@ case "${architecture}" in
     exit 1
     ;;
 esac
-version=${FOLIOFOLD_VERSION:-0.1.0}
+version=${FOLIOFOLD_VERSION:-0.2.0}
 identity=${FOLIOFOLD_SIGNING_IDENTITY:--}
 output_root=${FOLIOFOLD_OUTPUT_DIR:-dist}
 build_path=${FOLIOFOLD_BUILD_PATH:-.build}
@@ -20,6 +20,7 @@ app_bundle="${staging_root}/${app_name}.app"
 contents="${app_bundle}/Contents"
 macos="${contents}/MacOS"
 resources="${contents}/Resources"
+icon_source="Sources/FolioFold/Resources/AppIcon.icns"
 archive="${output_root}/${app_name}-${version}-${architecture}.zip"
 
 rm -rf "${staging_root}" "${archive}" "${archive}.sha256"
@@ -34,6 +35,8 @@ file "${executable}" | grep -q "${architecture}" || {
   exit 1
 }
 cp "${executable}" "${macos}/FolioFold"
+test -s "${icon_source}"
+cp "${icon_source}" "${resources}/AppIcon.icns"
 
 cat > "${contents}/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -43,6 +46,7 @@ cat > "${contents}/Info.plist" <<PLIST
   <key>CFBundleDevelopmentRegion</key><string>en</string>
   <key>CFBundleExecutable</key><string>FolioFold</string>
   <key>CFBundleIdentifier</key><string>app.foliofold.FolioFold</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>FolioFold</string>
   <key>CFBundlePackageType</key><string>APPL</string>

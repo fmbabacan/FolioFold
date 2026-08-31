@@ -11,7 +11,7 @@ jobs:
   build-and-test:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: Verify Apache license
         run: grep -q "Apache License" LICENSE
       - name: Verify dependency-free package
@@ -24,7 +24,10 @@ jobs:
           import json
           from pathlib import Path
 
-          source = Path('Sources/FolioFold/FolioFoldApp.swift').read_text()
+          source = '\n'.join(
+              path.read_text()
+              for path in Path('Sources/FolioFold').rglob('*.swift')
+          )
           catalog = json.loads(Path('Sources/FolioFold/Resources/Localizable.xcstrings').read_text())
           keys = set(catalog.get('strings', {}))
           required_catalog_entries = {
@@ -79,11 +82,11 @@ jobs:
         run: |
           chmod +x scripts/package-release.sh scripts/notarize-release.sh
           architecture=$(printf '%s' "${{ runner.arch }}" | tr '[:upper:]' '[:lower:]')
-          FOLIOFOLD_VERSION=0.1.0 scripts/package-release.sh "${architecture}"
-          test -s "dist/FolioFold-0.1.0-${architecture}.zip"
-          test -s "dist/FolioFold-0.1.0-${architecture}.zip.sha256"
+          FOLIOFOLD_VERSION=0.2.0 scripts/package-release.sh "${architecture}"
+          test -s "dist/FolioFold-0.2.0-${architecture}.zip"
+          test -s "dist/FolioFold-0.2.0-${architecture}.zip.sha256"
       - name: Upload release executable
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: FolioFold-${{ runner.arch }}
           path: FolioFold-${{ runner.arch }}.zip
@@ -91,7 +94,7 @@ jobs:
   intel-build:
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: Build and test x86_64
         run: |
           swift test
@@ -102,7 +105,7 @@ jobs:
         run: |
           ditto -c -k --sequesterRsrc .build/release/FolioFold FolioFold-x86_64.zip
           test $(stat -f%z FolioFold-x86_64.zip) -lt 41943040
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: FolioFold-x86_64
           path: FolioFold-x86_64.zip

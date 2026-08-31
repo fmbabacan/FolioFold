@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Published version tag, for example v0.1.0
+        description: Published version tag, for example v0.2.0
         required: true
         type: string
 
@@ -17,7 +17,7 @@ jobs:
   verify-release:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: Download published assets
         env:
           GH_TOKEN: ${{ github.token }}

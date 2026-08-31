@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 enum FolioFoldRelease {
-    static let fallbackVersion = "0.1.0"
+    static let fallbackVersion = "0.2.0"
     static let supportAddress = "fatihmehmet@babacan.co"
     static let repositoryURL = URL(string: "https://github.com/fmbabacan/FolioFold")!
     static let releasesURL = repositoryURL.appending(path: "releases/latest")
