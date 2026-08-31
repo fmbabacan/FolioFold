@@ -22,4 +22,6 @@ The Developer ID private key stays in the release operator's macOS Keychain. Do 
 5. Wait for Release verification to confirm checksums, signatures, architectures, and Gatekeeper acceptance.
 6. Generate and publish the Homebrew Cask from the immutable release hashes.
 
+The generated GitHub Release description identifies `arm64` for Apple Silicon Macs and `x86_64` for Intel Macs, and publishes a matching SHA-256 file for each archive.
+
 Never replace a published asset. Publish a new patch version instead.

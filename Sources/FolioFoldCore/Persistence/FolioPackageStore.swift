@@ -1,4 +1,3 @@
-import CommonCrypto
 import CryptoKit
 import Foundation
 
@@ -68,10 +67,8 @@ public struct OpenedFolioPackage: Sendable {
 }
 
 public enum FolioPackageStore {
-    private static let manifestName = "manifest.json"
-    private static let recoverySuffix = ".recovery"
-    private static let minimumIterations = 100_000
-    private static let maximumIterations = 1_000_000
+    static let manifestName = "manifest.json"
+    static let recoverySuffix = ".recovery"
 
     public static func save(
         _ document: FolioDocument,
@@ -246,167 +243,5 @@ public enum FolioPackageStore {
         let recovery = recoveryURL(for: packageURL)
         guard FileManager.default.fileExists(atPath: recovery.path) else { return }
         try FileManager.default.removeItem(at: recovery)
-    }
-
-    private static func replace(_ destination: URL, with temporary: URL) throws {
-        let manager = FileManager.default
-        guard manager.fileExists(atPath: destination.path) else {
-            try manager.moveItem(at: temporary, to: destination)
-            return
-        }
-        _ = try manager.replaceItemAt(
-            destination,
-            withItemAt: temporary,
-            backupItemName: nil,
-            options: []
-        )
-    }
-
-    private static func deriveKey(password: String, settings: FolioPackageManifest.Encryption) throws -> SymmetricKey {
-        guard settings.algorithm == "AES-256-GCM",
-              settings.keyDerivation == "PBKDF2-HMAC-SHA256",
-              (1 ... 2).contains(settings.derivationVersion),
-              settings.salt.count >= 16,
-              (minimumIterations ... maximumIterations).contains(settings.iterations) else {
-            throw FolioPackageError.unsupportedEncryption
-        }
-        let derivedKeyByteCount = 32
-        var material = Data(count: derivedKeyByteCount)
-        let status = password.withCString { passwordBytes in
-            settings.salt.withUnsafeBytes { saltBytes in
-                material.withUnsafeMutableBytes { outputBytes in
-                    CCKeyDerivationPBKDF(
-                        CCPBKDFAlgorithm(kCCPBKDF2),
-                        passwordBytes,
-                        strlen(passwordBytes),
-                        saltBytes.bindMemory(to: UInt8.self).baseAddress,
-                        settings.salt.count,
-                        CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA256),
-                        UInt32(settings.iterations),
-                        outputBytes.bindMemory(to: UInt8.self).baseAddress,
-                        derivedKeyByteCount
-                    )
-                }
-            }
-        }
-        guard status == kCCSuccess else { throw FolioPackageError.unsupportedEncryption }
-        return SymmetricKey(data: material)
-    }
-
-    private static func authenticatedManifestData(_ manifest: FolioPackageManifest) throws -> Data {
-        let authenticated = FolioPackageManifest(
-            formatVersion: manifest.formatVersion,
-            documentPath: manifest.documentPath,
-            encryption: manifest.encryption
-        )
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-        return try encoder.encode(authenticated)
-    }
-
-    private static func passwordVerifier(for key: SymmetricKey) -> Data {
-        Data(HMAC<SHA256>.authenticationCode(
-            for: Data("FolioFold password verifier v1".utf8),
-            using: key
-        ))
-    }
-
-    private static func packageResources(
-        from document: FolioDocument,
-        into packageURL: URL
-    ) throws -> FolioDocument {
-        var packaged = document
-        if !document.assets.isEmpty {
-            let assetsDirectory = packageURL.appendingPathComponent("assets", isDirectory: true)
-            try FileManager.default.createDirectory(
-                at: assetsDirectory,
-                withIntermediateDirectories: true
-            )
-            packaged.assets = try document.assets.enumerated().map { index, asset in
-                let source = URL(fileURLWithPath: asset.path)
-                let fileName = "\(index)-\(source.lastPathComponent)"
-                let relativePath = "assets/\(fileName)"
-                let data = try Data(contentsOf: source)
-                try data.write(
-                    to: assetsDirectory.appendingPathComponent(fileName),
-                    options: .atomic
-                )
-                return FolioAsset(
-                    path: relativePath,
-                    mediaType: asset.mediaType,
-                    checksum: digest(data)
-                )
-            }
-        }
-
-        if let sourcePDF = document.sourcePDF {
-            let source = URL(fileURLWithPath: sourcePDF.path)
-            let sourceDirectory = packageURL.appendingPathComponent("source", isDirectory: true)
-            try FileManager.default.createDirectory(
-                at: sourceDirectory,
-                withIntermediateDirectories: true
-            )
-            let data = try Data(contentsOf: source)
-            try data.write(
-                to: sourceDirectory.appendingPathComponent("original.pdf"),
-                options: .atomic
-            )
-            packaged.sourcePDF = SourcePDFInfo(
-                path: "source/original.pdf",
-                checksum: digest(data),
-                pageCount: sourcePDF.pageCount
-            )
-        }
-        return packaged
-    }
-
-    private static func verifyResources(in document: FolioDocument, packageURL: URL) throws {
-        for asset in document.assets {
-            let resourceURL = try safeURL(for: asset.path, in: packageURL)
-            guard let data = try? Data(contentsOf: resourceURL),
-                  digest(data) == asset.checksum else {
-                throw FolioPackageError.invalidPackage
-            }
-        }
-        if let sourcePDF = document.sourcePDF {
-            let resourceURL = try safeURL(for: sourcePDF.path, in: packageURL)
-            guard let data = try? Data(contentsOf: resourceURL),
-                  digest(data) == sourcePDF.checksum else {
-                throw FolioPackageError.invalidPackage
-            }
-        }
-    }
-
-    private static func safeURL(for path: String, in packageURL: URL) throws -> URL {
-        guard !path.isEmpty,
-              !path.hasPrefix("/"),
-              !path.split(separator: "/").contains("..") else {
-            throw FolioPackageError.invalidPackage
-        }
-        let root = packageURL.standardizedFileURL.resolvingSymlinksInPath()
-        let candidate = packageURL.appendingPathComponent(path).standardizedFileURL
-        if (try? candidate.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true {
-            throw FolioPackageError.invalidPackage
-        }
-        let resolved = candidate.resolvingSymlinksInPath()
-        let rootPrefix = root.path.hasSuffix("/") ? root.path : root.path + "/"
-        guard resolved.path.hasPrefix(rootPrefix) else {
-            throw FolioPackageError.invalidPackage
-        }
-        return resolved
-    }
-
-    private static func randomData(count: Int) -> Data {
-        var generator = SystemRandomNumberGenerator()
-        return Data((0..<count).map { _ in UInt8.random(in: .min ... .max, using: &generator) })
-    }
-
-    private static func digest(_ data: Data) -> String {
-        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-    }
-
-    private static func recoveryURL(for packageURL: URL) -> URL {
-        packageURL.deletingLastPathComponent()
-            .appendingPathComponent(packageURL.lastPathComponent + recoverySuffix)
     }
 }
