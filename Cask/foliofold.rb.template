@@ -10,7 +10,7 @@ cask "foliofold" do
   end
 
   name "FolioFold"
-  desc "Private, native PDF and structured document workspace for macOS"
+  desc "Native, privacy-focused PDF and structured document workspace"
   homepage "https://github.com/fmbabacan/FolioFold"
 
   livecheck do

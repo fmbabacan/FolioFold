@@ -56,7 +56,7 @@ jobs:
           PY
       - name: Verify offline-only source tree
         run: |
-          ! rg -n 'URLSession|NWConnection|Network\.|WebKit|WKWebView' Sources --glob '*.swift'
+          ! grep -R -n -E 'URLSession|NWConnection|Network\.|WebKit|WKWebView' Sources --include='*.swift'
       - name: Test
         run: swift test
       - name: Build release
@@ -78,9 +78,10 @@ jobs:
       - name: Verify application bundle packaging
         run: |
           chmod +x scripts/package-release.sh scripts/notarize-release.sh
-          FOLIOFOLD_VERSION=0.1.0 scripts/package-release.sh ${{ runner.arch }}
-          test -s dist/FolioFold-0.1.0-${{ runner.arch }}.zip
-          test -s dist/FolioFold-0.1.0-${{ runner.arch }}.zip.sha256
+          architecture=$(printf '%s' "${{ runner.arch }}" | tr '[:upper:]' '[:lower:]')
+          FOLIOFOLD_VERSION=0.1.0 scripts/package-release.sh "${architecture}"
+          test -s "dist/FolioFold-0.1.0-${architecture}.zip"
+          test -s "dist/FolioFold-0.1.0-${architecture}.zip.sha256"
       - name: Upload release executable
         uses: actions/upload-artifact@v5
         with:
