@@ -1,16 +1,66 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "About FolioFold": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FolioFold Hakkında"
+          }
+        }
+      }
+    },
     "Check for Updates…": {},
     "Contact Support": {},
     "Contact Support…": {},
     "Continue": {},
     "FolioFold Help and Source": {},
+    "FolioFold is an independent, open-source workspace for creating structured documents and working with PDFs. Merge, split, convert, annotate, redact, and build reusable templates without sending your files away.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FolioFold; yapılandırılmış belgeler oluşturmak ve PDF’lerle çalışmak için geliştirilmiş, bağımsız ve açık kaynaklı bir çalışma alanıdır. Dosyalarınızı başka bir yere göndermeden birleştirin, bölün, dönüştürün, açıklamalar ekleyin, hassas içerikleri kalıcı olarak gizleyin ve tekrar kullanılabilir şablonlar hazırlayın."
+          }
+        }
+      }
+    },
     "If you find a problem or have an idea, please contact %@.": {},
     "Thank you for using FolioFold. Your support helps this independent macOS app continue to improve.": {},
+    "Made with care for people who want useful document tools without giving up privacy. Thanks for being part of FolioFold’s journey.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gizliliğinden vazgeçmeden kullanışlı belge araçlarına sahip olmak isteyenler için özenle geliştirildi. FolioFold’un yolculuğuna eşlik ettiğiniz için teşekkürler."
+          }
+        }
+      }
+    },
     "Version": {},
     "Version %@": {},
     "View on GitHub": {},
+    "Your documents, thoughtfully handled on your Mac.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belgeleriniz, Mac’inizde özenle işlenir."
+          }
+        }
+      }
+    },
+    "Your documents stay on this Mac.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belgeleriniz bu Mac’te kalır."
+          }
+        }
+      }
+    },
     "Welcome to FolioFold": {},
     ".": {},
     "A visual signature is an image annotation, not a certified digital signature.": {},

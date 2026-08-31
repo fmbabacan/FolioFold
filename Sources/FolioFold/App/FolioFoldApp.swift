@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 @main
 struct FolioFoldApp: App {
+    @Environment(\.openWindow) private var openWindow
     @State private var openRequest = 0
     @AppStorage("hasSeenWelcome") private var hasSeenWelcome = false
     @State private var isShowingWelcome = false
@@ -26,6 +27,11 @@ struct FolioFoldApp: App {
         }
         .windowStyle(.titleBar)
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About FolioFold") {
+                    openWindow(id: "about")
+                }
+            }
             SidebarCommands()
             CommandGroup(after: .newItem) {
                 Button("Open…") { openRequest += 1 }
@@ -46,5 +52,10 @@ struct FolioFoldApp: App {
                 Text("Version \(FolioFoldRelease.displayVersion)")
             }
         }
+
+        Window("About FolioFold", id: "about") {
+            FolioFoldAboutView()
+        }
+        .windowResizability(.contentSize)
     }
 }
