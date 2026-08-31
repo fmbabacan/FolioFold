@@ -24,7 +24,10 @@ jobs:
           import json
           from pathlib import Path
 
-          source = Path('Sources/FolioFold/FolioFoldApp.swift').read_text()
+          source = '\n'.join(
+              path.read_text()
+              for path in Path('Sources/FolioFold').rglob('*.swift')
+          )
           catalog = json.loads(Path('Sources/FolioFold/Resources/Localizable.xcstrings').read_text())
           keys = set(catalog.get('strings', {}))
           required_catalog_entries = {
