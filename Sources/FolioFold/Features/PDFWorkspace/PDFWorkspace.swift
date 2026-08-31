@@ -137,24 +137,72 @@ struct PDFWorkspace: View {
             .accessibilityLabel("Page thumbnails")
 
             VStack(spacing: 0) {
-                HStack {
-                    Button("Move Up", systemImage: "arrow.up") { movePage(by: -1) }
+                HStack(spacing: 8) {
+                    ControlGroup {
+                        Button { movePage(by: -1) } label: {
+                            Image(systemName: "arrow.up")
+                        }
+                        .help("Move Page Up")
+                        .accessibilityLabel("Move Page Up")
                         .disabled(selectedPage == 0 || isRunning)
-                    Button("Move Down", systemImage: "arrow.down") { movePage(by: 1) }
+
+                        Button { movePage(by: 1) } label: {
+                            Image(systemName: "arrow.down")
+                        }
+                        .help("Move Page Down")
+                        .accessibilityLabel("Move Page Down")
                         .disabled(selectedPage >= document.pageCount - 1 || isRunning)
-                    Button("Rotate", systemImage: "rotate.right") { rotatePage() }
-                        .disabled(document.pageCount == 0 || isRunning)
-                    Button("Duplicate", systemImage: "plus.square.on.square") { duplicatePage() }
-                        .disabled(document.pageCount == 0 || isRunning)
-                    Button("Delete", systemImage: "trash", role: .destructive) { deletePage() }
-                        .disabled(document.pageCount <= 1 || isRunning)
-                    Spacer()
-                    Button("Export PDF…") { exportWorkingPDF() }
-                        .disabled(document.pageCount == 0 || isRunning)
-                    Button("Replace Source…", role: .destructive) {
-                        isConfirmingSourceReplacement = true
                     }
+                    .controlGroupStyle(.navigation)
+
+                    Button { rotatePage() } label: {
+                        Image(systemName: "rotate.right")
+                    }
+                    .buttonStyle(.bordered)
+                    .help("Rotate Page")
+                    .accessibilityLabel("Rotate Page")
                     .disabled(document.pageCount == 0 || isRunning)
+
+                    Menu {
+                        Button("Duplicate Page", systemImage: "plus.square.on.square") {
+                            duplicatePage()
+                        }
+                        .disabled(document.pageCount == 0 || isRunning)
+
+                        Divider()
+
+                        Button("Delete Page", systemImage: "trash", role: .destructive) {
+                            deletePage()
+                        }
+                        .disabled(document.pageCount <= 1 || isRunning)
+                    } label: {
+                        Image(systemName: "doc.badge.ellipsis")
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .help("Page Actions")
+                    .accessibilityLabel("Page Actions")
+
+                    Spacer()
+
+                    Button("Export…", systemImage: "square.and.arrow.up") {
+                        exportWorkingPDF()
+                    }
+                    .buttonStyle(.borderedProminent)
+                        .disabled(document.pageCount == 0 || isRunning)
+
+                    Menu {
+                        Button("Replace Source PDF…", systemImage: "arrow.triangle.2.circlepath", role: .destructive) {
+                            isConfirmingSourceReplacement = true
+                        }
+                        .disabled(document.pageCount == 0 || isRunning)
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .help("More PDF Actions")
+                    .accessibilityLabel("More PDF Actions")
                 }
                 .padding(10)
                 Divider()
