@@ -2,6 +2,14 @@
 set -euo pipefail
 
 architecture=${1:-$(uname -m)}
+architecture=${architecture:l}
+case "${architecture}" in
+  arm64|x86_64) ;;
+  *)
+    print -u2 "Unsupported architecture: ${architecture}"
+    exit 1
+    ;;
+esac
 version=${FOLIOFOLD_VERSION:-0.1.0}
 identity=${FOLIOFOLD_SIGNING_IDENTITY:--}
 output_root=${FOLIOFOLD_OUTPUT_DIR:-dist}

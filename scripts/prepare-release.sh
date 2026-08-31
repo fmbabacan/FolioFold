@@ -3,6 +3,14 @@ set -euo pipefail
 
 version=${1:?Usage: scripts/prepare-release.sh <version> [architecture]}
 architecture=${2:-$(uname -m)}
+architecture=${architecture:l}
+case "${architecture}" in
+  arm64|x86_64) ;;
+  *)
+    print -u2 "Unsupported architecture: ${architecture}"
+    exit 1
+    ;;
+esac
 identity=${FOLIOFOLD_SIGNING_IDENTITY:?Set FOLIOFOLD_SIGNING_IDENTITY to a Developer ID Application identity}
 profile=${FOLIOFOLD_NOTARY_PROFILE:?Set FOLIOFOLD_NOTARY_PROFILE to a notarytool Keychain profile}
 

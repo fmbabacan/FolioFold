@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-15%2B-black.svg)](#requirements)
 
-FolioFold is a native, privacy-focused macOS workspace for creating, editing, converting, organizing, signing, and exporting PDF and Folio documents. Document processing stays on the Mac.
+FolioFold is an open-source, native macOS workspace for creating, editing, converting, organizing, signing, and exporting PDF and Folio documents. It works locally, without uploading your documents to a service.
 
 ## Download and install
 
