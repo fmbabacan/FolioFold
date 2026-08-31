@@ -27,6 +27,58 @@ enum FolioFoldRelease {
     }
 }
 
+struct FolioFoldAboutView: View {
+    var body: some View {
+        VStack(spacing: 18) {
+            if let icon = NSApplication.shared.applicationIconImage {
+                Image(nsImage: icon)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 96, height: 96)
+                    .accessibilityHidden(true)
+            }
+
+            VStack(spacing: 5) {
+                Text("FolioFold")
+                    .font(.largeTitle.bold())
+                Text("Your documents, thoughtfully handled on your Mac.")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Text("FolioFold is an independent, open-source workspace for creating structured documents and working with PDFs. Merge, split, convert, annotate, redact, and build reusable templates without sending your files away.")
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Label("Your documents stay on this Mac.", systemImage: "hand.raised.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(DesignTokens.inkBlue)
+
+            Text("Made with care for people who want useful document tools without giving up privacy. Thanks for being part of FolioFold’s journey.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("Version \(FolioFoldRelease.displayVersion)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack {
+                Button("Contact Support", systemImage: "envelope") {
+                    FolioFoldRelease.openSupportEmail()
+                }
+                Button("View on GitHub", systemImage: "safari") {
+                    NSWorkspace.shared.open(FolioFoldRelease.repositoryURL)
+                }
+            }
+        }
+        .padding(30)
+        .frame(width: 500)
+        .accessibilityIdentifier("about.window")
+    }
+}
+
 struct FolioFoldWelcomeView: View {
     @Environment(\.dismiss) private var dismiss
 
