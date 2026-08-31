@@ -88,9 +88,9 @@ jobs:
         run: |
           chmod +x scripts/package-release.sh scripts/notarize-release.sh
           architecture=$(printf '%s' "${{ runner.arch }}" | tr '[:upper:]' '[:lower:]')
-          FOLIOFOLD_VERSION=0.2.0 scripts/package-release.sh "${architecture}"
-          test -s "dist/FolioFold-0.2.0-${architecture}.zip"
-          test -s "dist/FolioFold-0.2.0-${architecture}.zip.sha256"
+          FOLIOFOLD_VERSION=0.3.0 scripts/package-release.sh "${architecture}"
+          test -s "dist/FolioFold-0.3.0-${architecture}.zip"
+          test -s "dist/FolioFold-0.3.0-${architecture}.zip.sha256"
       - name: Upload release executable
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
