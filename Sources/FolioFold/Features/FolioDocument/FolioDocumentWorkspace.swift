@@ -20,7 +20,7 @@ struct FolioDocumentWorkspace: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
+            HStack(spacing: 8) {
                 Text(title).font(.headline)
                 Spacer()
                 Picker("Block type", selection: $selectedBlockKind) {
@@ -30,17 +30,48 @@ struct FolioDocumentWorkspace: View {
                 }
                 .labelsHidden()
                 .frame(width: 150)
-                Button("Add Block", systemImage: "plus") { addBlock() }
+
+                Button("Add", systemImage: "plus") { addBlock() }
+                    .buttonStyle(.bordered)
                     .disabled(isReadOnly)
+                    .help("Add Block")
+                    .accessibilityLabel("Add Block")
                     .accessibilityHint("Adds another content block")
+
                 TemplateWorkspace(editor: $editor, isReadOnly: isReadOnly) { message = $0 }
-                Button("Undo", systemImage: "arrow.uturn.backward") { editor.undo() }
+                    .labelStyle(.iconOnly)
+                    .help("Templates")
+                    .accessibilityLabel("Templates")
+
+                ControlGroup {
+                    Button { editor.undo() } label: {
+                        Image(systemName: "arrow.uturn.backward")
+                    }
                     .disabled(isReadOnly || !editor.canUndo)
-                Button("Redo", systemImage: "arrow.uturn.forward") { editor.redo() }
+                    .help("Undo")
+                    .accessibilityLabel("Undo")
+
+                    Button { editor.redo() } label: {
+                        Image(systemName: "arrow.uturn.forward")
+                    }
                     .disabled(isReadOnly || !editor.canRedo)
-                Button("Save…", systemImage: "square.and.arrow.down") { save() }
+                    .help("Redo")
+                    .accessibilityLabel("Redo")
+                }
+                .controlGroupStyle(.navigation)
+
+                Button { save() } label: {
+                    Image(systemName: "square.and.arrow.down")
+                }
+                    .buttonStyle(.bordered)
                     .disabled(isReadOnly)
-                Button("Export PDF…", systemImage: "doc.richtext") { exportPDF() }
+                    .help("Save Document")
+                    .accessibilityLabel("Save Document")
+
+                Button("Export…", systemImage: "doc.richtext") { exportPDF() }
+                    .buttonStyle(.borderedProminent)
+                    .help("Export PDF")
+                    .accessibilityLabel("Export PDF")
             }
             .padding()
             Divider()
