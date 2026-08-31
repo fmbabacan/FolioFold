@@ -17,13 +17,7 @@ git diff --quiet
 git diff --cached --quiet
 git tag --list "${tag}" | grep -qx "${tag}" || git tag -a "${tag}" -m "FolioFold ${tag}"
 git push origin "${tag}"
-cat > "${notes}" <<NOTES
-## Downloads
-
-- **Apple Silicon Macs:** download `FolioFold-${version}-arm64.zip` for M1, M2, M3, M4, and newer Apple chips.
-- **Intel Macs:** download `FolioFold-${version}-x86_64.zip`.
-
-Each ZIP has a matching `.sha256` file for integrity verification. FolioFold requires macOS 15 or later.
-NOTES
+printf '## Downloads\n\n- **Apple Silicon Macs:** download `FolioFold-%s-arm64.zip` for M1, M2, M3, M4, and newer Apple chips.\n- **Intel Macs:** download `FolioFold-%s-x86_64.zip`.\n\nEach ZIP has a matching `.sha256` file for integrity verification. FolioFold requires macOS 15 or later.\n' \
+  "${version}" "${version}" > "${notes}"
 gh release create "${tag}" "${arm}" "${arm}.sha256" "${intel}" "${intel}.sha256" --verify-tag --generate-notes --notes-file "${notes}" --title "FolioFold ${tag}"
 print "Published ${tag}."
