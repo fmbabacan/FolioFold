@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Published version tag, for example v0.3.1
+        description: Published version tag, for example v0.4.0
         required: true
         type: string
 
@@ -46,9 +46,15 @@ jobs:
             test -d "${app}"
             codesign --verify --deep --strict --verbose=2 "${app}"
             spctl --assess --type execute --verbose=2 "${app}"
+            test -d "${app}/Contents/Frameworks/Sparkle.framework"
+            test -x "${app}/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate"
+            test -x "${app}/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater"
+            test -n "$(defaults read "${app}/Contents/Info" SUPublicEDKey)"
             if [[ "${archive}" == *-arm64.zip ]]; then
+              test "$(defaults read "${app}/Contents/Info" SUFeedURL)" = 'https://raw.githubusercontent.com/fmbabacan/FolioFold/main/appcast-arm64.xml'
               file "${app}/Contents/MacOS/FolioFold" | grep -q arm64
             else
+              test "$(defaults read "${app}/Contents/Info" SUFeedURL)" = 'https://raw.githubusercontent.com/fmbabacan/FolioFold/main/appcast-x86_64.xml'
               file "${app}/Contents/MacOS/FolioFold" | grep -q x86_64
             fi
             rm -rf "${work}"

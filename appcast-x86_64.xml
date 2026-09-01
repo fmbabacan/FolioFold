@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>FolioFold Updates</title>
+    <link>https://github.com/fmbabacan/FolioFold/releases</link>
+    <description>FolioFold release updates</description>
+    <language>en</language>
+    <item>
+      <title>FolioFold 0.4.0 for Intel</title>
+      <sparkle:version>0.4.0</sparkle:version>
+      <sparkle:shortVersionString>0.4.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/fmbabacan/FolioFold/releases/download/v0.4.0/FolioFold-0.4.0-x86_64.zip" length="4540201" type="application/octet-stream" sparkle:edSignature="AuiUw4coIsuCIXF+8U4ez09rg7ePph9HW4YhRi5Yo1SpcB0fJaZVkUY1mAokaxtFjO5GhsK4sZ06HGzg8BcYAw==" />
+    </item>
+  </channel>
+</rss>

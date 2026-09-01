@@ -122,6 +122,7 @@ osascript \
   -e 'end repeat' \
   -e 'if (count of windows of appProcess) is 0 then error "FolioFold window did not appear"' \
   -e 'set mainWindow to first window of appProcess' \
+  -e 'repeat 100 times' \
   -e 'set allElements to entire contents of mainWindow' \
   -e 'set createControl to my elementWithIdentifier(allElements, "sidebar.create")' \
   -e 'set openControl to my elementWithIdentifier(allElements, "sidebar.open")' \
@@ -130,6 +131,9 @@ osascript \
   -e 'set convertControl to my elementWithIdentifier(allElements, "sidebar.convert")' \
   -e 'set narrowerSidebarControl to my elementWithIdentifier(allElements, "sidebar.width.decrease")' \
   -e 'set widerSidebarControl to my elementWithIdentifier(allElements, "sidebar.width.increase")' \
+  -e 'if createControl is not missing value and openControl is not missing value and mergeControl is not missing value and splitControl is not missing value and convertControl is not missing value and narrowerSidebarControl is not missing value and widerSidebarControl is not missing value then exit repeat' \
+  -e 'delay 0.05' \
+  -e 'end repeat' \
   -e 'if createControl is missing value then error "Create control is missing"' \
   -e 'if openControl is missing value then error "Open control is missing"' \
   -e 'if mergeControl is missing value then error "Merge control is missing"' \

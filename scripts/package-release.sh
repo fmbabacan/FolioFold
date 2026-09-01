@@ -10,8 +10,10 @@ case "${architecture}" in
     exit 1
     ;;
 esac
-version=${FOLIOFOLD_VERSION:-0.3.1}
+version=${FOLIOFOLD_VERSION:-0.4.0}
 identity=${FOLIOFOLD_SIGNING_IDENTITY:--}
+sparkle_public_key=${SPARKLE_PUBLIC_KEY:-}
+sparkle_feed_url=${SPARKLE_FEED_URL:-https://raw.githubusercontent.com/fmbabacan/FolioFold/main/appcast-${architecture}.xml}
 output_root=${FOLIOFOLD_OUTPUT_DIR:-dist}
 build_path=${FOLIOFOLD_BUILD_PATH:-.build}
 app_name=FolioFold
@@ -20,11 +22,12 @@ app_bundle="${staging_root}/${app_name}.app"
 contents="${app_bundle}/Contents"
 macos="${contents}/MacOS"
 resources="${contents}/Resources"
+frameworks="${contents}/Frameworks"
 icon_source="Sources/FolioFold/Resources/AppIcon.icns"
 archive="${output_root}/${app_name}-${version}-${architecture}.zip"
 
 rm -rf "${staging_root}" "${archive}" "${archive}.sha256"
-mkdir -p "${macos}" "${resources}"
+mkdir -p "${macos}" "${resources}" "${frameworks}"
 trap 'rm -rf "${staging_root}"' EXIT
 
 swift build -c release --arch "${architecture}" --build-path "${build_path}"
@@ -35,6 +38,12 @@ file "${executable}" | grep -q "${architecture}" || {
   exit 1
 }
 cp "${executable}" "${macos}/FolioFold"
+chmod 755 "${macos}/FolioFold"
+install_name_tool -add_rpath "@executable_path/../Frameworks" "${macos}/FolioFold" 2>/dev/null || true
+sparkle_framework=$(find "${build_path}" -path '*/release/Sparkle.framework' -type d -print -quit)
+test -n "${sparkle_framework}"
+cp -R "${sparkle_framework}" "${frameworks}/Sparkle.framework"
+otool -l "${macos}/FolioFold" | grep -Fq '@executable_path/../Frameworks'
 test -s "${icon_source}"
 cp "${icon_source}" "${resources}/AppIcon.icns"
 
@@ -54,9 +63,15 @@ cat > "${contents}/Info.plist" <<PLIST
   <key>CFBundleVersion</key><string>${version}</string>
   <key>LSMinimumSystemVersion</key><string>15.0</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>SUEnableAutomaticChecks</key><true/>
+  <key>SUAutomaticallyUpdate</key><false/>
+  <key>SUFeedURL</key><string>${sparkle_feed_url}</string>
+  <key>SUPublicEDKey</key><string>${sparkle_public_key}</string>
 </dict>
 </plist>
 PLIST
+test -n "${sparkle_public_key}" || { print -u2 "SPARKLE_PUBLIC_KEY is required"; exit 1; }
+plutil -lint "${contents}/Info.plist" >/dev/null
 
 if [[ "${identity}" == "-" ]]; then
   codesign --force --deep --options runtime --timestamp=none --sign "${identity}" "${app_bundle}"
