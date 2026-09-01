@@ -10,7 +10,7 @@ case "${architecture}" in
     exit 1
     ;;
 esac
-version=${FOLIOFOLD_VERSION:-0.3.0}
+version=${FOLIOFOLD_VERSION:-0.3.1}
 identity=${FOLIOFOLD_SIGNING_IDENTITY:--}
 output_root=${FOLIOFOLD_OUTPUT_DIR:-dist}
 build_path=${FOLIOFOLD_BUILD_PATH:-.build}

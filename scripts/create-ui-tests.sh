@@ -16,7 +16,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-for _ in {1..100}; do
+for _ in {1..500}; do
   test -f "${ready_file}" && break
   kill -0 "${pid}" 2>/dev/null || { cat "${log_file}" >&2; exit 1; }
   sleep 0.02
