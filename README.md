@@ -18,7 +18,7 @@ FolioFold requires macOS 15 or later. Download the latest notarized build from t
 
 If you are unsure which Mac you have, choose Apple menu > About This Mac and check whether the processor or chip says Apple or Intel.
 
-FolioFold v0.3.1 is distributed as separate notarized downloads for Apple Silicon and Intel Macs. Use Apple menu > About This Mac if the Mac architecture is unknown.
+FolioFold v0.4.0 is distributed as separate notarized downloads for Apple Silicon and Intel Macs. Use Apple menu > About This Mac if the Mac architecture is unknown.
 
 ### Homebrew
 
@@ -50,7 +50,7 @@ Thank you for using and supporting FolioFold. If you encounter a problem or have
 
 ## Updates
 
-Choose Help > Check for Updates in FolioFold. GitHub installations open the latest release page. Homebrew users can run brew update followed by brew upgrade --cask foliofold.
+Choose Help > Check for Updates in FolioFold to use the native Sparkle update flow. Homebrew users can also run brew update followed by brew upgrade --cask foliofold.
 
 The current version is visible in the Help menu and in the first-launch welcome window.
 
@@ -67,7 +67,7 @@ swift build -c release
 Create an ad-hoc signed local application archive with:
 
 ```shell
-FOLIOFOLD_VERSION=0.3.1 scripts/package-release.sh arm64
+SPARKLE_PUBLIC_KEY="$(.build/artifacts/sparkle/Sparkle/bin/generate_keys --account FolioFold -p)" FOLIOFOLD_VERSION=0.4.0 scripts/package-release.sh arm64
 ```
 
 Official public releases are signed with an Apple Developer ID Application certificate, notarized by Apple, and published with SHA-256 checksums.

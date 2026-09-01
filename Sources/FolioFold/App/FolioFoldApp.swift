@@ -1,10 +1,16 @@
 import FolioFoldCore
 import PDFKit
+import Sparkle
 import SwiftUI
 import UniformTypeIdentifiers
 
 @main
 struct FolioFoldApp: App {
+    private let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
     @Environment(\.openWindow) private var openWindow
     @State private var openRequest = 0
     @AppStorage("hasSeenWelcome") private var hasSeenWelcome = false
@@ -62,8 +68,9 @@ struct FolioFoldApp: App {
                     NSWorkspace.shared.open(FolioFoldRelease.repositoryURL)
                 }
                 Button("Check for Updates…") {
-                    NSWorkspace.shared.open(FolioFoldRelease.releasesURL)
+                    updaterController.checkForUpdates(nil)
                 }
+                .disabled(!updaterController.updater.canCheckForUpdates)
                 Divider()
                 Button("Contact Support…") {
                     FolioFoldRelease.openSupportEmail()

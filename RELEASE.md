@@ -1,4 +1,4 @@
-# FolioFold v1 Release Checklist
+# FolioFold v0.4.0 Release Checklist
 
 Public application downloads are published through GitHub Releases, not GitHub Packages. Each release must contain notarized Apple Silicon and Intel application archives plus their SHA-256 checksum files. The initial process keeps the Developer ID private key in the release operator's Keychain and does not upload a `.p12` private key to GitHub Actions.
 
@@ -6,7 +6,7 @@ Public application downloads are published through GitHub Releases, not GitHub P
 
 - Run the complete test suite on macOS 15 and the current macOS release.
 - Build arm64 and x86_64 release executables.
-- Validate the String Catalog, required accessibility labels, dependency-free package graph, offline-only source tree, runtime smoke test, and executable and archive size budgets.
+- Validate the String Catalog, required accessibility labels, pinned Sparkle dependency, offline-only source tree, runtime smoke test, and executable and archive size budgets.
 - Confirm that the 1,000-page layout test stays deterministic and completes within its bounded performance budget without eagerly rasterizing every page.
 - Run `scripts/runtime-smoke.sh .build/release/FolioFold` on a reference Apple Silicon machine to verify that the SwiftUI workspace reaches its ready state within the startup budget, remains below 120 MB idle RSS, and emits no unexpected output.
 - Run `scripts/ui-smoke.sh .build/release/FolioFold` to launch the real macOS process, verify the main workspace controls, open Merge, Split, and Convert, and create a new Folio workspace through the accessibility tree.
@@ -26,16 +26,17 @@ Run `scripts/package-release.sh arm64` or `scripts/package-release.sh x86_64` to
 For a local Developer ID release, first install a `Developer ID Application` certificate and its private key in the login Keychain. Then create a notarization profile without placing credentials in the repository:
 
 ```shell
-xcrun notarytool store-credentials FolioFoldNotary
+xcrun notarytool store-credentials foliofoldnotary
 ```
 
 Build and notarize each architecture with the exact identity shown by `security find-identity -v -p codesigning`:
 
 ```shell
 export FOLIOFOLD_SIGNING_IDENTITY='Developer ID Application: Your Name (TEAMID)'
-export FOLIOFOLD_NOTARY_PROFILE='FolioFoldNotary'
-FOLIOFOLD_VERSION=0.3.1 scripts/package-release.sh arm64
-scripts/notarize-release.sh dist/FolioFold-0.3.1-arm64.zip
+export FOLIOFOLD_NOTARY_PROFILE='foliofoldnotary'
+export SPARKLE_PUBLIC_KEY='the public key printed by generate_keys --account FolioFold -p'
+FOLIOFOLD_VERSION=0.4.0 scripts/package-release.sh arm64
+scripts/notarize-release.sh dist/FolioFold-0.4.0-arm64.zip
 ```
 
 Repeat on an Intel Mac or trusted Intel build environment for `x86_64`. Never publish an ad-hoc signed archive as an official release.

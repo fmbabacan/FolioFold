@@ -10,7 +10,7 @@ The Developer ID private key stays in the release operator's macOS Keychain. Do 
 
 1. Install a `Developer ID Application` certificate and its private key in the login Keychain.
 2. Run `security find-identity -v -p codesigning` and copy the exact identity name.
-3. Create a Keychain-backed notarization profile with `xcrun notarytool store-credentials FolioFoldNotary`.
+3. Create a Keychain-backed notarization profile with `xcrun notarytool store-credentials foliofoldnotary`.
 4. Keep a separately encrypted offline backup of the certificate and private key.
 
 ## Release sequence
