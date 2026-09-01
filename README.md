@@ -52,6 +52,8 @@ Thank you for using and supporting FolioFold. If you encounter a problem or have
 
 Choose Help > Check for Updates in FolioFold to use the native Sparkle update flow. FolioFold uses a processor-specific signed update feed so Apple Silicon and Intel installations receive the matching archive. Homebrew users can also run brew update followed by brew upgrade --cask foliofold.
 
+FolioFold 0.3.x did not include Sparkle or an update feed. Upgrading from 0.3.x to 0.4.0 therefore requires one manual bootstrap installation: download the archive matching the Mac processor, quit FolioFold, and replace the existing application in Applications. The bundle identifier remains `app.foliofold.FolioFold`, so application preferences and document compatibility are preserved. Updates after 0.4.0 use Sparkle.
+
 The current version is visible in the Help menu and in the first-launch welcome window.
 
 ## Build from source
