@@ -1,95 +1,149 @@
-# FolioFold
+<p align="center">
+  <img src="Sources/FolioFold/Resources/AppIconMaster.png" width="160" alt="FolioFold app icon">
+</p>
 
-[![CI](https://github.com/fmbabacan/FolioFold/actions/workflows/ci.yml/badge.svg)](https://github.com/fmbabacan/FolioFold/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![macOS](https://img.shields.io/badge/macOS-15%2B-black.svg)](#requirements)
+<h1 align="center">FolioFold</h1>
 
-FolioFold is an open-source, native macOS workspace for creating, editing, converting, organizing, signing, and exporting PDF and Folio documents. It works locally, without uploading your documents to a service.
+<p align="center">A private, native workspace for PDFs and structured documents on macOS.</p>
 
-## Download and install
+<p align="center">
+  <a href="https://github.com/fmbabacan/FolioFold/releases/latest"><strong>Download FolioFold</strong></a> ·
+  <a href="#install">Install</a> ·
+  <a href="#what-you-can-do">Features</a> ·
+  <a href="https://github.com/fmbabacan/FolioFold/issues">Support</a>
+</p>
 
-FolioFold requires macOS 15 or later. Download the latest notarized build from the [Releases page](https://github.com/fmbabacan/FolioFold/releases/latest).
+<p align="center">
+  <a href="https://github.com/fmbabacan/FolioFold/releases/latest"><img src="https://img.shields.io/github/v/release/fmbabacan/FolioFold?display_name=tag&style=flat-square" alt="Latest release"></a>
+  <a href="https://github.com/fmbabacan/FolioFold/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/fmbabacan/FolioFold/ci.yml?branch=main&style=flat-square&label=build" alt="Build status"></a>
+  <img src="https://img.shields.io/badge/macOS-15%2B-111111?style=flat-square&logo=apple" alt="macOS 15 or later">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-4c6ef5?style=flat-square" alt="Apache License 2.0"></a>
+</p>
 
-1. Choose `FolioFold-<version>-arm64.zip` for Apple Silicon Macs (M1, M2, M3, M4, or newer).
-2. Choose `FolioFold-<version>-x86_64.zip` for Intel Macs.
-3. Open the downloaded ZIP file.
-4. Drag `FolioFold.app` into the Applications folder.
-5. Open FolioFold from Applications. A notarized public release should open normally without bypassing Gatekeeper.
+<p align="center">
+  <img src="Tests/VisualSnapshots/pdf-workspace-dark.png" width="920" alt="FolioFold PDF workspace in dark appearance">
+</p>
 
-If you are unsure which Mac you have, choose Apple menu > About This Mac and check whether the processor or chip says Apple or Intel.
+FolioFold brings document creation, PDF editing, conversion, organization, signing, and export into one focused Mac app. Document processing stays on the Mac. No account is required, and document contents are not uploaded to a service.
 
-FolioFold v0.4.0 is distributed as separate notarized downloads for Apple Silicon and Intel Macs. Use Apple menu > About This Mac if the Mac architecture is unknown.
+## Why FolioFold
+
+- **Native Mac experience** built with Swift and SwiftUI.
+- **Private by default** with local, offline-first document processing.
+- **One workspace** for creating Folio documents and working with PDFs.
+- **Safe document operations** that avoid overwriting source files by default.
+- **Accessible interface** with keyboard navigation, VoiceOver labels, reduced-motion support, and light and dark appearances.
+- **Open source** under the Apache License 2.0.
+
+## Install
+
+FolioFold requires **macOS 15 or later** and supports Apple Silicon and Intel Macs.
 
 ### Homebrew
 
-Install the notarized release through the FolioFold Homebrew tap:
-
-```shell
+~~~shell
 brew install --cask fmbabacan/tap/foliofold
-```
+~~~
 
-GitHub Packages is not used for the FolioFold macOS application. Installable application archives belong in GitHub Releases; Homebrew Cask points to those same notarized release files.
+To update a Homebrew installation:
 
-Thank you for using and supporting FolioFold. If you encounter a problem or have an idea, contact [fatihmehmet@babacan.co](mailto:fatihmehmet@babacan.co).
+~~~shell
+brew update
+brew upgrade --cask foliofold
+~~~
 
-## Highlights
+### Direct download
 
-- Create structured Folio documents and generate documents from reusable template fields.
+Download the latest signed and notarized build from [GitHub Releases](https://github.com/fmbabacan/FolioFold/releases/latest):
+
+- **Apple Silicon:** choose the archive ending in <code>arm64.zip</code> for M1, M2, M3, M4, and newer Apple chips.
+- **Intel:** choose the archive ending in <code>x86_64.zip</code>.
+
+Open the ZIP archive, move <code>FolioFold.app</code> to Applications, and launch FolioFold normally. Official builds are signed with an Apple Developer ID certificate and notarized by Apple.
+
+If the Mac architecture is unknown, open **Apple menu > About This Mac** and check the Chip or Processor field.
+
+## What you can do
+
+### Create and organize
+
+- Build structured Folio documents from text, images, links, notes, and reusable template fields.
+- Save editable <code>.foliofold</code> packages with recovery snapshots and workspace restoration.
+- Work across multiple documents with tabs, recent files, undo, and redo.
+- Protect Folio packages with local encryption.
+
+### Work with PDFs
+
 - Open, merge, split, reorder, rotate, duplicate, and export PDF pages.
 - Convert supported text, image, RTF, and controlled local HTML files to PDF.
-- Add notes, links, highlights, drawings, images, forms, and visual signatures.
-- Draw a visual signature with a mouse or trackpad, import one, and store signatures locally.
-- Apply destructive redactions to newly generated PDFs without overwriting the source.
-- Use encrypted Folio packages, recovery snapshots, undo, redo, and workspace restoration.
-- Work offline without uploading documents to a service.
+- Add notes, links, highlights, drawings, images, and form fields.
+- Fill forms and add locally stored visual signatures.
+- Apply destructive redactions to newly generated output without modifying the source PDF.
 
-## Requirements
+> A visual signature is an image annotation. It is not a certificate-backed cryptographic signature.
 
-- macOS 15 or later
-- Apple Silicon or Intel Mac, according to the downloaded package
+## Privacy and security
+
+FolioFold performs document operations locally. The application does not require an account and does not send document contents to a remote processing service.
+
+Official releases use a layered verification chain:
+
+1. Developer ID code signing with the hardened runtime.
+2. Apple notarization and a stapled notarization ticket.
+3. Published SHA-256 checksums for Apple Silicon and Intel archives.
+4. EdDSA-signed, processor-specific Sparkle update feeds.
+5. Post-publication CI checks for signatures, architecture, checksums, and Gatekeeper acceptance.
+
+Private release credentials remain in the release operator's macOS Keychain. They are not stored in this repository or GitHub Actions.
+
+For security reports, follow [SECURITY.md](SECURITY.md). Please do not disclose vulnerabilities in a public issue.
 
 ## Updates
 
-Choose Help > Check for Updates in FolioFold to use the native Sparkle update flow. FolioFold uses a processor-specific signed update feed so Apple Silicon and Intel installations receive the matching archive. Homebrew users can also run brew update followed by brew upgrade --cask foliofold.
+Choose **Help > Check for Updates** to use the signed Sparkle update flow. Apple Silicon and Intel installations each receive the correct processor-specific archive.
 
-FolioFold 0.3.x did not include Sparkle or an update feed. Upgrading from 0.3.x to 0.4.0 therefore requires one manual bootstrap installation: download the archive matching the Mac processor, quit FolioFold, and replace the existing application in Applications. The bundle identifier remains `app.foliofold.FolioFold`, so application preferences and document compatibility are preserved. Updates after 0.4.0 use Sparkle.
-
-The current version is visible in the Help menu and in the first-launch welcome window.
+FolioFold 0.3.x did not include Sparkle. Moving from 0.3.x to 0.4.0 requires one manual installation from the Releases page. Updates after 0.4.0 can use the in-app update flow. The bundle identifier remains <code>app.foliofold.FolioFold</code>, preserving application identity and preferences.
 
 ## Build from source
 
-Install Xcode 26 or later, clone the repository, and run:
+Requirements:
 
-```shell
+- macOS 15 or later
+- Xcode 26 or later
+- Swift 6.1 or later
+
+~~~shell
+git clone https://github.com/fmbabacan/FolioFold.git
+cd FolioFold
 swift build
 swift test
-swift build -c release
-```
+~~~
 
-Create an ad-hoc signed local application archive with:
+Run the complete local verification suite before opening a pull request:
 
-```shell
-SPARKLE_PUBLIC_KEY="$(.build/artifacts/sparkle/Sparkle/bin/generate_keys --account FolioFold -p)" FOLIOFOLD_VERSION=0.4.0 scripts/package-release.sh arm64
-```
+~~~shell
+scripts/verify.sh
+~~~
 
-Official public releases are signed with an Apple Developer ID Application certificate, notarized by Apple, and published with SHA-256 checksums.
+The project pins [Sparkle](https://github.com/sparkle-project/Sparkle) 2.9.6 for secure application updates. Official signing, notarization, and Sparkle private keys are intentionally unavailable to ordinary source builds.
 
-## Privacy and signatures
+## Project guides
 
-FolioFold performs document operations locally. A visual signature is an image annotation and is not a certificate-backed digital signature.
-
-## Support
-
-For bug reports, installation problems, and feature requests, email [fatihmehmet@babacan.co](mailto:fatihmehmet@babacan.co). Please include the FolioFold version, macOS version, and steps that reproduce the issue.
-
-Public bug reports and feature requests can also be submitted through [GitHub Issues](https://github.com/fmbabacan/FolioFold/issues). Security reports must follow [SECURITY.md](SECURITY.md) and should not be posted publicly.
+- [Architecture](docs/ARCHITECTURE.md)
+- [Folio document format](FORMAT.md)
+- [Publishing](docs/PUBLISHING.md)
+- [Sparkle update model](docs/SPARKLE.md)
+- [Homebrew distribution](docs/HOMEBREW.md)
+- [Roadmap](docs/ROADMAP.md)
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md), then open a focused pull request with tests for behavior changes.
 
-Start with the [architecture guide](docs/ARCHITECTURE.md), then run `scripts/verify.sh` before opening a pull request. The [publication roadmap](docs/ROADMAP.md) explains the GitHub, Homebrew, and future App Store phases.
+For bug reports and feature requests, use [GitHub Issues](https://github.com/fmbabacan/FolioFold/issues). For installation help, include the FolioFold version, macOS version, Mac architecture, and reproducible steps.
 
 ## License
 
-FolioFold is licensed under the Apache License 2.0. See [LICENSE](LICENSE).
+FolioFold is available under the [Apache License 2.0](LICENSE).
+
+<p align="center">Built for private, focused document work on the Mac.</p>
