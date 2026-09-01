@@ -6,18 +6,11 @@
     <description>FolioFold release updates</description>
     <language>en</language>
     <item>
-      <title>FolioFold @VERSION@ for Apple Silicon</title>
+      <title>FolioFold @VERSION@ for @ARCHITECTURE_NAME@</title>
       <sparkle:version>@BUILD@</sparkle:version>
       <sparkle:shortVersionString>@VERSION@</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-      <enclosure url="https://github.com/fmbabacan/FolioFold/releases/download/v@VERSION@/FolioFold-@VERSION@-arm64.zip" length="@ARM_LENGTH@" type="application/octet-stream" sparkle:edSignature="@ARM_SIGNATURE@" />
-    </item>
-    <item>
-      <title>FolioFold @VERSION@ for Intel</title>
-      <sparkle:version>@BUILD@</sparkle:version>
-      <sparkle:shortVersionString>@VERSION@</sparkle:shortVersionString>
-      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-      <enclosure url="https://github.com/fmbabacan/FolioFold/releases/download/v@VERSION@/FolioFold-@VERSION@-x86_64.zip" length="@INTEL_LENGTH@" type="application/octet-stream" sparkle:edSignature="@INTEL_SIGNATURE@" />
+      <enclosure url="https://github.com/fmbabacan/FolioFold/releases/download/v@VERSION@/FolioFold-@VERSION@-@ARCHITECTURE@.zip" length="@LENGTH@" type="application/octet-stream" sparkle:edSignature="@SIGNATURE@" />
     </item>
   </channel>
 </rss>

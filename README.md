@@ -50,7 +50,7 @@ Thank you for using and supporting FolioFold. If you encounter a problem or have
 
 ## Updates
 
-Choose Help > Check for Updates in FolioFold to use the native Sparkle update flow. Homebrew users can also run brew update followed by brew upgrade --cask foliofold.
+Choose Help > Check for Updates in FolioFold to use the native Sparkle update flow. FolioFold uses a processor-specific signed update feed so Apple Silicon and Intel installations receive the matching archive. Homebrew users can also run brew update followed by brew upgrade --cask foliofold.
 
 The current version is visible in the Help menu and in the first-launch welcome window.
 

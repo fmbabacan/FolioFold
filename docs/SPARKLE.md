@@ -4,7 +4,7 @@
 
 - Help > Check for Updates opens the native Sparkle update flow.
 - Automatic checks are enabled while unattended installation remains disabled.
-- Apple Silicon clients receive arm64 archives and Intel clients receive x86_64 archives.
+- Apple Silicon bundles use `appcast-arm64.xml`; Intel bundles use `appcast-x86_64.xml`. Each feed contains exactly one update per bundle version, preventing selection of an archive for the wrong processor architecture.
 - Sparkle, GitHub Releases, and Homebrew reference the same notarized immutable archives.
 
 ## Security requirements
@@ -27,7 +27,7 @@
 1. Build and test v0.4.0.
 2. Package and notarize arm64 and x86_64 archives.
 3. Sign both final archives with the FolioFold Sparkle key.
-4. Generate `appcast.xml` and the Homebrew Cask from those exact archives.
+4. Generate `appcast-arm64.xml`, `appcast-x86_64.xml`, and the Homebrew Cask from those exact archives.
 5. Publish immutable GitHub Release assets.
-6. Publish the appcast and update the Homebrew tap.
+6. Explicitly commit both generated appcasts after verifying that their enclosure lengths and EdDSA signatures match the final immutable archives, then update the Homebrew tap.
 7. Verify an upgrade from v0.3.1 to v0.4.0 on both architectures.

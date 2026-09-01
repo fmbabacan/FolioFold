@@ -13,7 +13,7 @@ esac
 version=${FOLIOFOLD_VERSION:-0.4.0}
 identity=${FOLIOFOLD_SIGNING_IDENTITY:--}
 sparkle_public_key=${SPARKLE_PUBLIC_KEY:-}
-sparkle_feed_url=${SPARKLE_FEED_URL:-https://raw.githubusercontent.com/fmbabacan/FolioFold/main/appcast.xml}
+sparkle_feed_url=${SPARKLE_FEED_URL:-https://raw.githubusercontent.com/fmbabacan/FolioFold/main/appcast-${architecture}.xml}
 output_root=${FOLIOFOLD_OUTPUT_DIR:-dist}
 build_path=${FOLIOFOLD_BUILD_PATH:-.build}
 app_name=FolioFold

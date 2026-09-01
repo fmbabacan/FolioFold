@@ -50,10 +50,11 @@ jobs:
             test -x "${app}/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate"
             test -x "${app}/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater"
             test -n "$(defaults read "${app}/Contents/Info" SUPublicEDKey)"
-            test "$(defaults read "${app}/Contents/Info" SUFeedURL)" = 'https://raw.githubusercontent.com/fmbabacan/FolioFold/main/appcast.xml'
             if [[ "${archive}" == *-arm64.zip ]]; then
+              test "$(defaults read "${app}/Contents/Info" SUFeedURL)" = 'https://raw.githubusercontent.com/fmbabacan/FolioFold/main/appcast-arm64.xml'
               file "${app}/Contents/MacOS/FolioFold" | grep -q arm64
             else
+              test "$(defaults read "${app}/Contents/Info" SUFeedURL)" = 'https://raw.githubusercontent.com/fmbabacan/FolioFold/main/appcast-x86_64.xml'
               file "${app}/Contents/MacOS/FolioFold" | grep -q x86_64
             fi
             rm -rf "${work}"

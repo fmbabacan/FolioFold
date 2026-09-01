@@ -111,7 +111,7 @@ jobs:
           test -x "${app}/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater"
           test -x "${app}/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader"
           test -x "${app}/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer"
-          test "$(defaults read "${app}/Contents/Info" SUFeedURL)" = 'https://raw.githubusercontent.com/fmbabacan/FolioFold/main/appcast.xml'
+          test "$(defaults read "${app}/Contents/Info" SUFeedURL)" = "https://raw.githubusercontent.com/fmbabacan/FolioFold/main/appcast-${architecture}.xml"
           (cd dist && shasum -a 256 -c "FolioFold-0.4.0-${architecture}.zip.sha256")
       - name: Upload release executable
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5

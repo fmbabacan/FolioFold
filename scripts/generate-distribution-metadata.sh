@@ -19,10 +19,18 @@ intel_sha=$(shasum -a 256 "${intel}" | awk '{print $1}')
 escape() { print -nr -- "$1" | sed 's/[\\&|]/\\&/g' }
 arm_signature=$(escape "${arm_signature}")
 intel_signature=$(escape "${intel_signature}")
-sed -e "s|@VERSION@|${version}|g" -e "s|@BUILD@|${build}|g" -e "s|@ARM_LENGTH@|${arm_length}|g" -e "s|@INTEL_LENGTH@|${intel_length}|g" -e "s|@ARM_SIGNATURE@|${arm_signature}|g" -e "s|@INTEL_SIGNATURE@|${intel_signature}|g" Distribution/Sparkle/appcast.xml.template > appcast.xml
+generate_appcast() {
+  local architecture=$1
+  local architecture_name=$2
+  local length=$3
+  local signature=$4
+  sed -e "s|@VERSION@|${version}|g" -e "s|@BUILD@|${build}|g" -e "s|@ARCHITECTURE@|${architecture}|g" -e "s|@ARCHITECTURE_NAME@|${architecture_name}|g" -e "s|@LENGTH@|${length}|g" -e "s|@SIGNATURE@|${signature}|g" Distribution/Sparkle/appcast.xml.template > "appcast-${architecture}.xml"
+  xmllint --noout "appcast-${architecture}.xml"
+  grep -Fq 'sparkle:edSignature=' "appcast-${architecture}.xml"
+}
+generate_appcast arm64 "Apple Silicon" "${arm_length}" "${arm_signature}"
+generate_appcast x86_64 Intel "${intel_length}" "${intel_signature}"
 sed -e "s/VERSION/${version}/g" -e "s/ARM64_SHA256/${arm_sha}/g" -e "s/X86_64_SHA256/${intel_sha}/g" Distribution/Homebrew/foliofold.rb.template > dist/foliofold.rb
-xmllint --noout appcast.xml
-grep -Fq 'sparkle:edSignature=' appcast.xml
 grep -Fq 'version "'"${version}"'"' dist/foliofold.rb
 ! grep -Eq 'VERSION|ARM64_SHA256|X86_64_SHA256' dist/foliofold.rb
-print "Generated appcast.xml and dist/foliofold.rb"
+print "Generated appcast-arm64.xml, appcast-x86_64.xml, and dist/foliofold.rb"

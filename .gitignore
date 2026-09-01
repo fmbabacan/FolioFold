@@ -4,6 +4,8 @@ DerivedData/
 *.xcuserstate
 .DS_Store
 dist/
+appcast-*.xml
+appcast.xml
 .codex/
 DESIGN.md
 PLAN (1).md

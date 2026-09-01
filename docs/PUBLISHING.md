@@ -20,7 +20,8 @@ The Developer ID private key stays in the release operator's macOS Keychain. Do 
 3. Test both archives on clean Macs.
 4. Run `scripts/publish-release.sh <version>` to create the annotated tag and GitHub Release.
 5. Wait for Release verification to confirm checksums, signatures, architectures, and Gatekeeper acceptance.
-6. Generate and publish the Homebrew Cask from the immutable release hashes.
+6. Run `scripts/generate-distribution-metadata.sh <version> <build>` against the final notarized archives, then commit `appcast-arm64.xml` and `appcast-x86_64.xml` explicitly with `git add -f`. Generated appcasts are ignored by default to prevent test artifacts from being committed accidentally.
+7. Copy the generated `dist/foliofold.rb` into the Homebrew tap, audit it, and verify install, upgrade, uninstall, and zap behavior.
 
 The generated GitHub Release description identifies `arm64` for Apple Silicon Macs and `x86_64` for Intel Macs, and publishes a matching SHA-256 file for each archive.
 
