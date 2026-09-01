@@ -76,6 +76,7 @@ osascript \
   -e 'delay 0.2' \
   -e 'set tabsAfterMerge to my elementsWithIdentifierPrefix(entire contents of mainWindow, "workspace.tab.select.")' \
   -e 'if (count of tabsAfterMerge) is not 2 then error "Merge did not create exactly one reusable tool tab"' \
+  -e 'if my elementWithIdentifier(entire contents of mainWindow, "workspace.tabs.overflow") is missing value then error "Open tabs overflow menu is missing"' \
   -e 'perform action "AXPress" of mergeControl' \
   -e 'delay 0.2' \
   -e 'if (count of my elementsWithIdentifierPrefix(entire contents of mainWindow, "workspace.tab.select.")) is not 2 then error "Repeated Merge created a duplicate tool tab"' \

@@ -73,6 +73,8 @@ osascript \
   -e 'my waitForWindow(targetPID)' \
   -e 'set appProcess to first process whose unix id is targetPID' \
   -e 'set mainWindow to first window of appProcess' \
+  -e 'set firstUseGuide to my elementWithIdentifier(entire contents of mainWindow, "document.first-use-guide")' \
+  -e 'if firstUseGuide is missing value then error "First-use block guidance is missing"' \
   -e 'set initialEditorCount to my countWithIdentifierPrefix(entire contents of mainWindow, "document.block.editor.")' \
   -e 'set addControl to my elementWithIdentifier(entire contents of mainWindow, "document.block.add")' \
   -e 'if addControl is missing value then error "Add control is missing"' \
@@ -82,6 +84,7 @@ osascript \
   -e 'set editorControl to my elementWithIdentifierPrefix(entire contents of mainWindow, "document.block.editor.")' \
   -e 'set value of editorControl to "Create UI test content"' \
   -e 'delay 0.2' \
+  -e 'if my elementWithIdentifier(entire contents of mainWindow, "document.first-use-guide") is not missing value then error "First-use guidance did not dismiss after editing"' \
   -e 'set undoControl to my elementWithIdentifier(entire contents of mainWindow, "document.history.undo")' \
   -e 'if undoControl is missing value or enabled of undoControl is false then error "Undo was not enabled after editing"' \
   -e 'perform action "AXPress" of undoControl' \

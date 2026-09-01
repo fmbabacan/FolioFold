@@ -361,6 +361,66 @@
         }
       }
     },
+    "Blocks flow into pages automatically. Reorder blocks as your document grows, or pin a block when it needs a fixed page position.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloklar otomatik olarak sayfalara akar. Belgeniz büyüdükçe blokları yeniden sıralayın veya sabit bir sayfa konumu gerektiğinde bloğu sabitleyin."
+          }
+        }
+      }
+    },
+    "Build your document with blocks": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belgenizi bloklarla oluşturun"
+          }
+        }
+      }
+    },
+    "Draw the annotation area directly on the selected page. Use arrow keys to move it and Shift-Arrows to resize it.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Açıklama alanını doğrudan seçili sayfaya çizin. Taşımak için ok tuşlarını, yeniden boyutlandırmak için Shift ve ok tuşlarını kullanın."
+          }
+        }
+      }
+    },
+    "Draw the form field directly on the selected page. Use arrow keys to move it and Shift-Arrows to resize it.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Form alanını doğrudan seçili sayfaya çizin. Taşımak için ok tuşlarını, yeniden boyutlandırmak için Shift ve ok tuşlarını kullanın."
+          }
+        }
+      }
+    },
+    "Open tabs menu": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Açık sekmeler menüsü"
+          }
+        }
+      }
+    },
+    "Show all open tabs": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tüm açık sekmeleri göster"
+          }
+        }
+      }
+    },
     "Zoom In": {},
     "Zoom Out": {},
     "calendar": {},

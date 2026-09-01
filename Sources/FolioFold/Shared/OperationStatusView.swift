@@ -61,6 +61,18 @@ struct OperationStatusView: View {
         }
         .frame(minHeight: isRunning || message != nil ? 28 : 0, alignment: .leading)
         .accessibilityElement(children: .contain)
+        .onChange(of: message) { _, newMessage in
+            guard let newMessage, !newMessage.isEmpty else { return }
+            let status = semanticStatus(for: newMessage)
+            NSAccessibility.post(
+                element: NSApp.mainWindow as Any,
+                notification: .announcementRequested,
+                userInfo: [
+                    .announcement: "\(status.rawValue): \(newMessage)",
+                    .priority: NSAccessibilityPriorityLevel.medium.rawValue
+                ]
+            )
+        }
     }
 
     private func semanticStatus(for message: String) -> SemanticStatus {

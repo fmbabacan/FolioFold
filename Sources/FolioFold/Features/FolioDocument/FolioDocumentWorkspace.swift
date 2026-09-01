@@ -98,6 +98,21 @@ struct FolioDocumentWorkspace: View {
                 .accessibilityIdentifier("document.status")
             ScrollView {
                 LazyVStack(spacing: 12) {
+                    if showsFirstUseGuide {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Build your document with blocks", systemImage: "square.stack.3d.up")
+                                .font(.headline)
+                            Text("Blocks flow into pages automatically. Reorder blocks as your document grows, or pin a block when it needs a fixed page position.")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                        .background(DesignTokens.inkBlue.opacity(0.08), in: RoundedRectangle(cornerRadius: DesignTokens.cornerRadius))
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("document.first-use-guide")
+                    }
+
                     ForEach(editor.document.flow) { block in
                         blockEditor(block)
                     }
@@ -282,6 +297,12 @@ struct FolioDocumentWorkspace: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(block.kind.displayName) block, position \(blockIndex + 1) of \(editor.document.flow.count)")
         .accessibilityIdentifier("document.block.\(block.id.uuidString)")
+    }
+
+    private var showsFirstUseGuide: Bool {
+        guard url == nil, editor.document.flow.count == 1, editor.document.overlays.isEmpty,
+              let firstBlock = editor.document.flow.first else { return false }
+        return firstBlock.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var pinHelp: String {

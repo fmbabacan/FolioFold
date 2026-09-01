@@ -18,6 +18,15 @@ grep -Fq 'pdf.inspector.redaction' "$pdf_workspace_source"
 grep -Fq 'InteractivePDFView' "$pdf_workspace_source"
 grep -Fq 'pdf.redaction.validation' "$pdf_workspace_source"
 grep -Fq 'pdf.redaction.advanced' "$pdf_workspace_source"
+grep -Fq 'pdf.annotation-placement-help' "$pdf_workspace_source"
+grep -Fq 'pdf.form-placement-help' "$pdf_workspace_source"
+grep -Fq 'case annotation' "$pdf_workspace_source"
+grep -Fq 'case form' "$pdf_workspace_source"
+grep -Fq 'let bounds = annotationBounds' "$pdf_workspace_source"
+grep -Fq 'bounds: formFieldBounds' "$pdf_workspace_source"
+grep -Fq 'document.first-use-guide' Sources/FolioFold/Features/FolioDocument/FolioDocumentWorkspace.swift
+grep -Fq 'workspace.tabs.overflow' Sources/FolioFold/Features/Workspace/WorkspaceView.swift
+grep -Fq 'notification: .announcementRequested' Sources/FolioFold/Shared/OperationStatusView.swift
 grep -Fq 'Arrow keys move by 1 point' "$pdf_workspace_source"
 grep -Fq 'page.bounds(for: .mediaBox).contains(bounds)' "$pdf_workspace_source"
 grep -Fq 'Export PDF…' "$pdf_workspace_source"

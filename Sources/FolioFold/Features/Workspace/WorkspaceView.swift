@@ -204,13 +204,36 @@ struct WorkspaceView: View {
     }
 
     private var tabStrip: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: DesignTokens.tabSpacing) {
-                ForEach(Array(workspace.sessions.enumerated()), id: \.element.id) { index, session in
-                    tab(session, at: index)
+        HStack(spacing: 0) {
+            ScrollView(.horizontal) {
+                HStack(spacing: DesignTokens.tabSpacing) {
+                    ForEach(Array(workspace.sessions.enumerated()), id: \.element.id) { index, session in
+                        tab(session, at: index)
+                    }
                 }
+                .padding(6)
             }
-            .padding(6)
+
+            if workspace.sessions.count > 1 {
+                Menu {
+                    ForEach(workspace.sessions) { session in
+                        Button {
+                            workspace.selectedSessionID = session.id
+                            announce("Selected \(session.title) tab")
+                        } label: {
+                            Label(session.title, systemImage: icon(for: session.kind))
+                        }
+                    }
+                } label: {
+                    Image(systemName: "chevron.down.circle")
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .padding(.trailing, 8)
+                .help("Show all open tabs")
+                .accessibilityLabel("Open tabs menu")
+                .accessibilityIdentifier("workspace.tabs.overflow")
+            }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Workspace tabs")
@@ -222,6 +245,7 @@ struct WorkspaceView: View {
         return HStack(spacing: 6) {
             Button {
                 workspace.selectedSessionID = session.id
+                announce("Selected \(session.title) tab")
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: icon(for: session.kind))
@@ -285,8 +309,17 @@ struct WorkspaceView: View {
                 return false
             }
             workspace.moveSession(from: source, to: index)
+            announce("Moved \(session.title) tab to position \(index + 1)")
             return true
         }
+    }
+
+    private func announce(_ message: String) {
+        NSAccessibility.post(
+            element: NSApp.mainWindow as Any,
+            notification: .announcementRequested,
+            userInfo: [.announcement: message, .priority: NSAccessibilityPriorityLevel.medium.rawValue]
+        )
     }
 
     @ViewBuilder

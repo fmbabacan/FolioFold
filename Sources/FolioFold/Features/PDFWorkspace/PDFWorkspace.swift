@@ -6,30 +6,36 @@ import UniformTypeIdentifiers
 
 @MainActor
 final class InteractivePDFView: PDFView {
-    var isRedactionEditingEnabled = false {
+    enum PlacementStyle {
+        case annotation
+        case form
+        case redaction
+    }
+
+    var placementStyle: PlacementStyle? {
         didSet {
-            redactionLayer.isHidden = !isRedactionEditingEnabled
+            placementLayer.isHidden = placementStyle == nil
+            updatePlacementAppearance()
             needsLayout = true
         }
     }
-    var redactionPageIndex = 0
-    var redactionBounds = CGRect.zero {
-        didSet { updateRedactionPreview() }
+    var placementPageIndex = 0
+    var placementBounds = CGRect.zero {
+        didSet { updatePlacementPreview() }
     }
-    var onRedactionBoundsChanged: ((CGRect) -> Void)?
+    var onPlacementBoundsChanged: ((CGRect) -> Void)?
 
-    private let redactionLayer = CAShapeLayer()
+    private let placementLayer = CAShapeLayer()
     private var dragStart: CGPoint?
     private var dragPage: PDFPage?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        redactionLayer.fillColor = NSColor.systemRed.withAlphaComponent(0.28).cgColor
-        redactionLayer.strokeColor = NSColor.systemRed.cgColor
-        redactionLayer.lineWidth = 2
-        redactionLayer.lineDashPattern = [6, 4]
-        layer?.addSublayer(redactionLayer)
+        placementLayer.lineWidth = 2
+        placementLayer.lineDashPattern = [6, 4]
+        layer?.addSublayer(placementLayer)
+        updatePlacementAppearance()
     }
 
     required init?(coder: NSCoder) {
@@ -40,13 +46,13 @@ final class InteractivePDFView: PDFView {
 
     override func layout() {
         super.layout()
-        updateRedactionPreview()
+        updatePlacementPreview()
     }
 
     override func mouseDown(with event: NSEvent) {
-        guard isRedactionEditingEnabled,
+        guard placementStyle != nil,
               let page = page(for: convert(event.locationInWindow, from: nil), nearest: true),
-              document?.index(for: page) == redactionPageIndex else {
+              document?.index(for: page) == placementPageIndex else {
             super.mouseDown(with: event)
             return
         }
@@ -54,22 +60,22 @@ final class InteractivePDFView: PDFView {
         let point = pagePoint(for: event, on: page)
         dragStart = point
         dragPage = page
-        setRedactionBounds(CGRect(origin: point, size: .zero), on: page)
+        setPlacementBounds(CGRect(origin: point, size: .zero), on: page)
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard isRedactionEditingEnabled,
+        guard placementStyle != nil,
               let start = dragStart,
               let page = dragPage else {
             super.mouseDragged(with: event)
             return
         }
         let point = pagePoint(for: event, on: page)
-        setRedactionBounds(normalizedRect(from: start, to: point), on: page)
+        setPlacementBounds(normalizedRect(from: start, to: point), on: page)
     }
 
     override func mouseUp(with event: NSEvent) {
-        guard isRedactionEditingEnabled,
+        guard placementStyle != nil,
               let start = dragStart,
               let page = dragPage else {
             super.mouseUp(with: event)
@@ -80,19 +86,19 @@ final class InteractivePDFView: PDFView {
         if bounds.width < 4 || bounds.height < 4 {
             bounds = CGRect(x: point.x, y: point.y, width: 72, height: 24)
         }
-        setRedactionBounds(bounds, on: page)
+        setPlacementBounds(bounds, on: page)
         dragStart = nil
         dragPage = nil
     }
 
     override func keyDown(with event: NSEvent) {
-        guard isRedactionEditingEnabled,
-              let page = document?.page(at: redactionPageIndex) else {
+        guard placementStyle != nil,
+              let page = document?.page(at: placementPageIndex) else {
             super.keyDown(with: event)
             return
         }
         let step: CGFloat = event.modifierFlags.contains(.option) ? 10 : 1
-        var bounds = redactionBounds
+        var bounds = placementBounds
         let resize = event.modifierFlags.contains(.shift)
         switch event.keyCode {
         case 123:
@@ -107,7 +113,7 @@ final class InteractivePDFView: PDFView {
             super.keyDown(with: event)
             return
         }
-        setRedactionBounds(bounds, on: page)
+        setPlacementBounds(bounds, on: page)
     }
 
     private func pagePoint(for event: NSEvent, on page: PDFPage) -> CGPoint {
@@ -124,28 +130,40 @@ final class InteractivePDFView: PDFView {
         )
     }
 
-    private func setRedactionBounds(_ proposed: CGRect, on page: PDFPage) {
+    private func setPlacementBounds(_ proposed: CGRect, on page: PDFPage) {
         let pageBounds = page.bounds(for: .mediaBox)
         var constrained = proposed.standardized
         constrained.size.width = min(max(4, constrained.width), pageBounds.width)
         constrained.size.height = min(max(4, constrained.height), pageBounds.height)
         constrained.origin.x = min(max(pageBounds.minX, constrained.minX), pageBounds.maxX - constrained.width)
         constrained.origin.y = min(max(pageBounds.minY, constrained.minY), pageBounds.maxY - constrained.height)
-        redactionBounds = constrained
-        onRedactionBoundsChanged?(constrained)
+        placementBounds = constrained
+        onPlacementBoundsChanged?(constrained)
     }
 
-    private func updateRedactionPreview() {
-        guard isRedactionEditingEnabled,
-              !redactionBounds.isEmpty,
-              let page = document?.page(at: redactionPageIndex) else {
-            redactionLayer.isHidden = true
+    private func updatePlacementPreview() {
+        guard placementStyle != nil,
+              !placementBounds.isEmpty,
+              let page = document?.page(at: placementPageIndex) else {
+            placementLayer.isHidden = true
             return
         }
-        redactionLayer.isHidden = false
-        let viewRect = convert(redactionBounds, from: page)
-        redactionLayer.frame = bounds
-        redactionLayer.path = CGPath(rect: viewRect, transform: nil)
+        placementLayer.isHidden = false
+        let viewRect = convert(placementBounds, from: page)
+        placementLayer.frame = bounds
+        placementLayer.path = CGPath(rect: viewRect, transform: nil)
+    }
+
+    private func updatePlacementAppearance() {
+        let color: NSColor
+        switch placementStyle {
+        case .annotation: color = .systemBlue
+        case .form: color = .systemGreen
+        case .redaction: color = .systemRed
+        case nil: color = .clear
+        }
+        placementLayer.fillColor = color.withAlphaComponent(0.22).cgColor
+        placementLayer.strokeColor = color.cgColor
     }
 }
 
@@ -155,9 +173,9 @@ struct PDFDocumentView: NSViewRepresentable {
     @Binding var scaleFactor: CGFloat
     fileprivate let command: PDFViewCommand?
     let searchText: String
-    let isRedactionEditingEnabled: Bool
-    let redactionPageIndex: Int
-    @Binding var redactionBounds: CGRect
+    let placementStyle: InteractivePDFView.PlacementStyle?
+    let placementPageIndex: Int
+    @Binding var placementBounds: CGRect
 
     @MainActor
     final class Coordinator: NSObject {
@@ -198,8 +216,8 @@ struct PDFDocumentView: NSViewRepresentable {
         view.displayDirection = .vertical
         view.displaysPageBreaks = true
         view.document = document
-        view.onRedactionBoundsChanged = { bounds in
-            redactionBounds = bounds
+        view.onPlacementBoundsChanged = { bounds in
+            placementBounds = bounds
         }
         context.coordinator.view = view
         let center = NotificationCenter.default
@@ -224,9 +242,9 @@ struct PDFDocumentView: NSViewRepresentable {
         if view.document !== document {
             view.document = document
         }
-        view.isRedactionEditingEnabled = isRedactionEditingEnabled
-        view.redactionPageIndex = redactionPageIndex
-        view.redactionBounds = redactionBounds
+        view.placementStyle = placementStyle
+        view.placementPageIndex = placementPageIndex
+        view.placementBounds = placementBounds
         context.coordinator.isUpdating = true
         if document.pageCount > 0,
            selectedPage >= 0,
@@ -336,6 +354,8 @@ struct PDFWorkspace: View {
     @State private var formFieldValue = ""
     @State private var formTool: FormTool = .text
     @State private var formChoices = "Option 1, Option 2"
+    @State private var annotationBounds = CGRect(x: 72, y: 72, width: 240, height: 48)
+    @State private var formFieldBounds = CGRect(x: 72, y: 132, width: 240, height: 28)
     @State private var pdfPassword = ""
     @State private var isRequestingPDFPassword = false
     @State private var redactionX = 72.0
@@ -587,9 +607,9 @@ struct PDFWorkspace: View {
                     scaleFactor: $pdfScaleFactor,
                     command: pdfViewCommand,
                     searchText: searchText,
-                    isRedactionEditingEnabled: inspectorCategory == .redaction,
-                    redactionPageIndex: selectedPage,
-                    redactionBounds: redactionBoundsBinding
+                    placementStyle: placementStyle,
+                    placementPageIndex: selectedPage,
+                    placementBounds: placementBoundsBinding
                 )
                 .accessibilityLabel(
                     "PDF document, page \(selectedPage + 1) of \(document.pageCount), zoom \(Int((pdfScaleFactor * 100).rounded())) percent"
@@ -625,6 +645,10 @@ struct PDFWorkspace: View {
 
                 case .annotation:
                     Section("Annotation") {
+                    Label("Draw the annotation area directly on the selected page. Use arrow keys to move it and Shift-Arrows to resize it.", systemImage: "rectangle.dashed")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("pdf.annotation-placement-help")
                     Picker("Annotation type", selection: $annotationTool) {
                         ForEach(AnnotationTool.allCases) { tool in
                             Text(tool.title).tag(tool)
@@ -684,6 +708,10 @@ struct PDFWorkspace: View {
 
                 case .form:
                     Section("Form Field") {
+                    Label("Draw the form field directly on the selected page. Use arrow keys to move it and Shift-Arrows to resize it.", systemImage: "rectangle.dashed")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("pdf.form-placement-help")
                     Picker("Field type", selection: $formTool) {
                         ForEach(FormTool.allCases) { tool in
                             Text(tool.title).tag(tool)
@@ -830,6 +858,24 @@ struct PDFWorkspace: View {
                 redactionHeight = bounds.height
             }
         )
+    }
+
+    private var placementStyle: InteractivePDFView.PlacementStyle? {
+        switch inspectorCategory {
+        case .annotation: .annotation
+        case .form: .form
+        case .redaction: .redaction
+        case .pages: nil
+        }
+    }
+
+    private var placementBoundsBinding: Binding<CGRect> {
+        switch inspectorCategory {
+        case .annotation: $annotationBounds
+        case .form: $formFieldBounds
+        case .redaction: redactionBoundsBinding
+        case .pages: .constant(.zero)
+        }
     }
 
     private var redactionIsValid: Bool {
@@ -1031,7 +1077,7 @@ struct PDFWorkspace: View {
     private func addSelectedAnnotation() {
         guard let destination = savePanel(defaultName: url.deletingPathExtension().lastPathComponent + " Annotated.pdf") else { return }
         let pageIndex = selectedPage
-        let bounds = CGRect(x: 72, y: 72, width: 240, height: 48)
+        let bounds = annotationBounds
         let kind: PDFAnnotationDescriptor.Kind
         switch annotationTool {
         case .note:
@@ -1119,7 +1165,7 @@ struct PDFWorkspace: View {
                 .init(url: working, fields: [
                     .init(
                         pageIndex: pageIndex,
-                        bounds: CGRect(x: 72, y: 132, width: 240, height: 28),
+                        bounds: formFieldBounds,
                         name: name,
                         kind: fieldKind,
                         value: value.isEmpty ? nil : value
