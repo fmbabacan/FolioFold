@@ -42,6 +42,14 @@ struct PDFOperationTests {
         #expect(try PDFSplitSelection.individualPages.groups(pageCount: 3) == [[0], [1], [2]])
     }
 
+    @Test("split output previews expose deterministic counts and page groups")
+    func splitOutputPreviewGroups() throws {
+        #expect(try PDFSplitSelection.every(3).groups(pageCount: 7) == [[0, 1, 2], [3, 4, 5], [6]])
+        #expect(try PDFSplitSelection.ranges([0...2, 4...4]).groups(pageCount: 6).count == 2)
+        #expect(try PDFSplitSelection.selected([4, 0, 2]).groups(pageCount: 5) == [[0, 2, 4]])
+        #expect(try PDFSplitSelection.individualPages.groups(pageCount: 4).count == 4)
+    }
+
     @Test("invalid split selections fail before producing output")
     func invalidSplitGroups() {
         #expect(throws: PDFOperationError.invalidPageSelection) {
@@ -49,6 +57,12 @@ struct PDFOperationTests {
         }
         #expect(throws: PDFOperationError.invalidPageSelection) {
             try PDFSplitSelection.every(0).groups(pageCount: 4)
+        }
+        #expect(throws: PDFOperationError.invalidPageSelection) {
+            try PDFSplitSelection.ranges([1...4]).groups(pageCount: 4)
+        }
+        #expect(throws: PDFOperationError.invalidPageSelection) {
+            try PDFSplitSelection.selected([]).groups(pageCount: 4)
         }
     }
 

@@ -70,6 +70,41 @@ struct FolioEditorTests {
         #expect(editor.document.flow[0].text == "Invoice")
     }
 
+    @Test("block reordering preserves identity and participates in undo and redo")
+    func blockReorderingUndoRedo() throws {
+        let first = Block(kind: .paragraph, text: "First")
+        let second = Block(kind: .heading, text: "Second")
+        let third = Block(kind: .paragraph, text: "Third")
+        var editor = FolioEditor(document: FolioDocument(
+            pages: [FolioPage()],
+            flow: [first, second, third],
+            overlays: []
+        ))
+
+        try editor.move(blockID: third.id, to: 0)
+        #expect(editor.document.flow.map(\.id) == [third.id, first.id, second.id])
+        editor.undo()
+        #expect(editor.document.flow.map(\.id) == [first.id, second.id, third.id])
+        editor.redo()
+        #expect(editor.document.flow.map(\.id) == [third.id, first.id, second.id])
+    }
+
+    @Test("invalid block reordering is transactional")
+    func invalidBlockReorderingIsTransactional() throws {
+        var editor = FolioEditor(document: .blank())
+        let blockID = try #require(editor.document.flow.first?.id)
+        let original = editor.document
+
+        #expect(throws: FolioDocumentError.invalidDocument) {
+            try editor.move(blockID: blockID, to: 4)
+        }
+        #expect(throws: FolioDocumentError.blockNotFound) {
+            try editor.move(blockID: UUID(), to: 0)
+        }
+        #expect(editor.document == original)
+        #expect(!editor.canUndo)
+    }
+
     @Test("pin and return operations participate in undo and redo")
     func overlayUndoRedo() throws {
         var editor = FolioEditor(document: .blank())
@@ -90,6 +125,29 @@ struct FolioEditorTests {
         #expect(editor.document.flow.map(\.id) == [blockID])
         editor.redo()
         #expect(editor.document.overlays.map(\.sourceBlockID) == [blockID])
+    }
+
+    @Test("pinned blocks expose and preserve their one-based return position")
+    func pinnedBlockReturnPosition() throws {
+        let first = Block(kind: .paragraph, text: "First")
+        let second = Block(kind: .paragraph, text: "Second")
+        let page = FolioPage()
+        var editor = FolioEditor(document: FolioDocument(
+            pages: [page],
+            flow: [first, second],
+            overlays: []
+        ))
+
+        try editor.pin(
+            blockID: second.id,
+            to: page.id,
+            frame: FolioRect(x: 20, y: 30, width: 200, height: 60)
+        )
+        let overlay = try #require(editor.document.overlays.first)
+        #expect(overlay.returnFlowPosition == 2)
+
+        try editor.returnToFlow(overlayID: overlay.id)
+        #expect(editor.document.flow.map(\.id) == [first.id, second.id])
     }
 
     @Test("a failed command leaves the document and history unchanged")

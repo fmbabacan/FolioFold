@@ -52,6 +52,37 @@ struct PDFEditingTests {
         #expect(annotations.first(where: { $0.fieldName == "approved" })?.widgetStringValue == "Yes")
     }
 
+    @Test("form field names and choices normalize predictably")
+    func validatesFormFieldInputs() {
+        #expect(PDFFormOperation.normalizedFieldName(" customer_name ") == "customer_name")
+        #expect(PDFFormOperation.normalizedFieldName("field") == nil)
+        #expect(PDFFormOperation.normalizedFieldName("1customer") == nil)
+        #expect(PDFFormOperation.normalizedFieldName("customer name") == nil)
+        #expect(PDFFormOperation.normalizedChoiceOptions([" One ", "Two"]) == ["One", "Two"])
+        #expect(PDFFormOperation.normalizedChoiceOptions(["One", "one"]) == nil)
+        #expect(PDFFormOperation.normalizedChoiceOptions(["One", " "]) == nil)
+    }
+
+    @Test("duplicate pending AcroForm names are rejected case insensitively")
+    func rejectsDuplicatePendingFormNames() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = directory.appendingPathComponent("source.pdf")
+        let output = directory.appendingPathComponent("duplicate.pdf")
+        try makePDF(at: source)
+
+        await #expect(throws: PDFOperationError.invalidInput) {
+            _ = try await PDFFormOperation().run(
+                .init(url: source, fields: [
+                    .init(pageIndex: 0, bounds: CGRect(x: 20, y: 20, width: 100, height: 20), name: "Customer", kind: .text),
+                    .init(pageIndex: 0, bounds: CGRect(x: 20, y: 50, width: 100, height: 20), name: "customer", kind: .text)
+                ]),
+                context: .init(outputURL: output)
+            )
+        }
+        #expect(!FileManager.default.fileExists(atPath: output.path))
+    }
+
     @Test("all v1 AcroForm field kinds survive PDF serialization")
     func createsEveryV1FormFieldKind() async throws {
         let directory = try temporaryDirectory()

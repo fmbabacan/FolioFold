@@ -15,8 +15,10 @@ struct FolioFoldApp: App {
             WorkspaceView(openRequest: openRequest)
                 .frame(minWidth: 820, minHeight: 560)
                 .onAppear {
+                    if VisualSnapshotHarness.runIfRequested() { return }
                     let isAutomatedRun = ProcessInfo.processInfo.environment["FOLIOFOLD_READY_FILE"] != nil
-                    if !hasSeenWelcome && !isAutomatedRun {
+                    let shouldShowAutomatedWelcome = ProcessInfo.processInfo.environment["FOLIOFOLD_SHOW_WELCOME"] == "1"
+                    if shouldShowAutomatedWelcome || (!hasSeenWelcome && !isAutomatedRun) {
                         isShowingWelcome = true
                         hasSeenWelcome = true
                     }
@@ -36,6 +38,24 @@ struct FolioFoldApp: App {
             CommandGroup(after: .newItem) {
                 Button("Open…") { openRequest += 1 }
                     .keyboardShortcut("o")
+            }
+            CommandMenu("Tabs") {
+                Button("Select Next Tab") {
+                    NotificationCenter.default.post(name: .folioFoldSelectNextTab, object: nil)
+                }
+                .keyboardShortcut(.tab, modifiers: [.control])
+
+                Button("Select Previous Tab") {
+                    NotificationCenter.default.post(name: .folioFoldSelectPreviousTab, object: nil)
+                }
+                .keyboardShortcut(.tab, modifiers: [.control, .shift])
+
+                Divider()
+
+                Button("Close Current Tab") {
+                    NotificationCenter.default.post(name: .folioFoldCloseCurrentTab, object: nil)
+                }
+                .keyboardShortcut("w", modifiers: [.command])
             }
             CommandGroup(replacing: .help) {
                 Button("FolioFold Help and Source") {

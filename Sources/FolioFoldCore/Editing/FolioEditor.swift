@@ -137,6 +137,20 @@ public struct FolioEditor: Sendable {
         }
     }
 
+    public mutating func move(blockID: UUID, to destination: Int) throws {
+        guard let source = document.flow.firstIndex(where: { $0.id == blockID }) else {
+            throw FolioDocumentError.blockNotFound
+        }
+        guard document.flow.indices.contains(destination) else {
+            throw FolioDocumentError.invalidDocument
+        }
+        guard source != destination else { return }
+        try mutate { document in
+            let block = document.flow.remove(at: source)
+            document.flow.insert(block, at: destination)
+        }
+    }
+
     public mutating func pin(
         blockID: UUID,
         to pageID: UUID,

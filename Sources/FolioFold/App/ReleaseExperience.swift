@@ -104,10 +104,12 @@ struct FolioFoldWelcomeView: View {
                 Spacer()
                 Button("Continue") { dismiss() }
                     .keyboardShortcut(.defaultAction)
+                    .accessibilityIdentifier("welcome.continue")
             }
         }
         .padding(30)
         .frame(width: 560)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("welcome.sheet")
     }
 }

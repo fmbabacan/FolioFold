@@ -128,6 +128,24 @@ public struct WorkspaceState: Codable, Equatable, Sendable {
         sessions = uniqueSessions.sorted {
             (order[$0.id] ?? .max) < (order[$1.id] ?? .max)
         }
+
+        let reusableKinds: Set<WorkspaceSession.Kind> = [.merge, .split, .convert]
+        var canonicalToolSessions: [WorkspaceSession.Kind: UUID] = [:]
+        var duplicateToolSessionIDs: [UUID: UUID] = [:]
+        sessions = sessions.filter { session in
+            guard reusableKinds.contains(session.kind) else { return true }
+            if let canonicalID = canonicalToolSessions[session.kind] {
+                duplicateToolSessionIDs[session.id] = canonicalID
+                return false
+            }
+            canonicalToolSessions[session.kind] = session.id
+            return true
+        }
+        if let selectedSessionID,
+           let canonicalID = duplicateToolSessionIDs[selectedSessionID] {
+            self.selectedSessionID = canonicalID
+        }
+
         for index in sessions.indices {
             sessions[index].externalChangeState = .unchanged
             if sessions[index].saveState == .saving {
@@ -229,6 +247,21 @@ public struct WorkspaceState: Codable, Equatable, Sendable {
         guard !session.hasUnsavedChanges else { return .needsConfirmation }
         close(sessionID: sessionID)
         return .closed
+    }
+
+    public mutating func selectAdjacentSession(forward: Bool) {
+        guard !sessions.isEmpty else {
+            selectedSessionID = nil
+            return
+        }
+        guard let selectedSessionID,
+              let index = sessions.firstIndex(where: { $0.id == selectedSessionID }) else {
+            self.selectedSessionID = forward ? sessions.first?.id : sessions.last?.id
+            return
+        }
+        let offset = forward ? 1 : -1
+        let destination = (index + offset + sessions.count) % sessions.count
+        self.selectedSessionID = sessions[destination].id
     }
 
     public mutating func moveSession(from source: Int, to destination: Int) {

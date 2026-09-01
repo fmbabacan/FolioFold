@@ -20,6 +20,17 @@ public struct PDFConvertInput: Sendable {
 public struct PDFConvertOperation: PDFOperation {
     public init() {}
 
+    public static func estimatedPageCount(for source: PDFConversionSource) throws -> Int {
+        try pages(for: source).count
+    }
+
+    public static func estimatedPageCount(for sources: [PDFConversionSource]) throws -> Int {
+        guard !sources.isEmpty else { throw PDFOperationError.invalidInput }
+        return try sources.reduce(0) { count, source in
+            count + (try estimatedPageCount(for: source))
+        }
+    }
+
     public func run(_ input: PDFConvertInput, context: PDFOperationContext) async throws -> URL {
         try await Task.detached(priority: .userInitiated) {
             guard !input.sources.isEmpty else { throw PDFOperationError.invalidInput }

@@ -12,7 +12,7 @@ struct SignatureCaptureButton: View {
     @State private var savedSignatures: [StoredSignature] = []
 
     var body: some View {
-        Button("Create Signature…", systemImage: "signature") {
+        Button("Create Visual Signature…", systemImage: "signature") {
             savedSignatures = SignatureStore.load()
             strokes = []
             isPresented = true
@@ -23,7 +23,14 @@ struct SignatureCaptureButton: View {
                 Text("Create Visual Signature")
                     .font(.title2.bold())
 
-                Text("Draw with a mouse or trackpad, import an image, or reuse a signature stored locally on this Mac.")
+                Label(
+                    "This creates an image annotation. It does not cryptographically sign or certify the PDF.",
+                    systemImage: "info.circle"
+                )
+                    .font(.callout)
+                    .accessibilityIdentifier("visual-signature.limitation")
+
+                Text("Draw with a mouse or trackpad, import an image, or reuse a Visual Signature stored locally on this Mac.")
                     .foregroundStyle(.secondary)
 
                 SignatureDrawingView(strokes: $strokes)
@@ -34,7 +41,7 @@ struct SignatureCaptureButton: View {
                         RoundedRectangle(cornerRadius: 10)
                             .stroke(Color.secondary.opacity(0.35))
                     }
-                    .accessibilityLabel("Signature drawing area")
+                    .accessibilityLabel("Visual Signature drawing area")
                     .accessibilityHint("Draw a visual signature with a mouse or trackpad")
 
                 HStack {
@@ -119,7 +126,7 @@ struct SignatureCaptureButton: View {
                         throw SignatureCaptureError.invalidImage
                     }
                     selectedData = data
-                    report("Imported signature image selected.")
+                    report("Imported Visual Signature image selected. This does not cryptographically sign the PDF.")
                     isPresented = false
                 } catch {
                     report(error.localizedDescription)
@@ -301,9 +308,9 @@ private enum SignatureCaptureError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .emptyDrawing: "Draw a signature before using it."
+        case .emptyDrawing: "Draw a Visual Signature before using it."
         case .invalidImage: "The selected file is not a readable image."
-        case .renderFailed: "The signature image could not be created."
+        case .renderFailed: "The Visual Signature image could not be created."
         }
     }
 }
