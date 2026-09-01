@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 @main
 struct FolioFoldApp: App {
     private let updaterController = SPUStandardUpdaterController(
-        startingUpdater: true,
+        startingUpdater: ProcessInfo.processInfo.environment["FOLIOFOLD_READY_FILE"] == nil,
         updaterDelegate: nil,
         userDriverDelegate: nil
     )
