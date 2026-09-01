@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 enum FolioFoldRelease {
-    static let fallbackVersion = "0.3.0"
+    static let fallbackVersion = "0.3.1"
     static let supportAddress = "fatihmehmet@babacan.co"
     static let repositoryURL = URL(string: "https://github.com/fmbabacan/FolioFold")!
     static let releasesURL = repositoryURL.appending(path: "releases/latest")
@@ -104,10 +104,12 @@ struct FolioFoldWelcomeView: View {
                 Spacer()
                 Button("Continue") { dismiss() }
                     .keyboardShortcut(.defaultAction)
+                    .accessibilityIdentifier("welcome.continue")
             }
         }
         .padding(30)
         .frame(width: 560)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("welcome.sheet")
     }
 }

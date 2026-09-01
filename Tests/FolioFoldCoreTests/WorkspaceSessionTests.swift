@@ -26,6 +26,31 @@ struct WorkspaceSessionTests {
         #expect(workspace.selectedSessionID == firstMergeID)
     }
 
+    @Test("tool transitions select the requested reusable session on every click")
+    func toolTransitionsRemainSynchronized() throws {
+        var workspace = WorkspaceState.fresh()
+
+        workspace.openTool(.merge)
+        let mergeID = try #require(workspace.selectedSessionID)
+        #expect(workspace.sessions.first(where: { $0.id == mergeID })?.kind == .merge)
+
+        workspace.openTool(.split)
+        let splitID = try #require(workspace.selectedSessionID)
+        #expect(workspace.sessions.first(where: { $0.id == splitID })?.kind == .split)
+
+        workspace.openTool(.convert)
+        let convertID = try #require(workspace.selectedSessionID)
+        #expect(workspace.sessions.first(where: { $0.id == convertID })?.kind == .convert)
+
+        workspace.openTool(.split)
+        #expect(workspace.selectedSessionID == splitID)
+        workspace.openTool(.merge)
+        #expect(workspace.selectedSessionID == mergeID)
+        workspace.openTool(.convert)
+        #expect(workspace.selectedSessionID == convertID)
+        #expect(workspace.sessions.filter { [.merge, .split, .convert].contains($0.kind) }.count == 3)
+    }
+
     @Test("closing the selected session chooses its nearest neighbor")
     func closingSelectedSessionChoosesNeighbor() throws {
         var workspace = WorkspaceState.fresh()
@@ -49,6 +74,38 @@ struct WorkspaceSessionTests {
 
         #expect(workspace.sessions.map(\.kind) == [.split, .folioDocument, .merge])
         #expect(workspace.selectedSessionID == selectedID)
+    }
+
+    @Test("adjacent session selection wraps in both directions")
+    func adjacentSessionSelectionWraps() throws {
+        var workspace = WorkspaceState.fresh()
+        let firstID = try #require(workspace.selectedSessionID)
+        workspace.openTool(.merge)
+        let secondID = try #require(workspace.selectedSessionID)
+        workspace.openTool(.split)
+        let thirdID = try #require(workspace.selectedSessionID)
+
+        workspace.selectAdjacentSession(forward: true)
+        #expect(workspace.selectedSessionID == firstID)
+        workspace.selectAdjacentSession(forward: true)
+        #expect(workspace.selectedSessionID == secondID)
+        workspace.selectAdjacentSession(forward: false)
+        #expect(workspace.selectedSessionID == firstID)
+        workspace.selectAdjacentSession(forward: false)
+        #expect(workspace.selectedSessionID == thirdID)
+    }
+
+    @Test("adjacent selection repairs missing selection and handles an empty workspace")
+    func adjacentSelectionRepairsInvalidState() throws {
+        var workspace = WorkspaceState.fresh()
+        let onlyID = try #require(workspace.selectedSessionID)
+        workspace.selectedSessionID = UUID()
+        workspace.selectAdjacentSession(forward: true)
+        #expect(workspace.selectedSessionID == onlyID)
+
+        workspace.sessions.removeAll()
+        workspace.selectAdjacentSession(forward: false)
+        #expect(workspace.selectedSessionID == nil)
     }
 
     @Test("a dirty session requests confirmation instead of closing")
@@ -102,6 +159,24 @@ struct WorkspaceSessionTests {
 
         workspace.updateDocumentState(sessionID: sessionID, saveState: .recoveryAvailable)
         #expect(workspace.sessions[0].recoveryState == .available)
+    }
+
+    @Test("create document state moves from changed through recovery to saved")
+    func createDocumentSaveStateLifecycle() throws {
+        var workspace = WorkspaceState.fresh()
+        let sessionID = try #require(workspace.selectedSessionID)
+
+        workspace.updateDocumentState(sessionID: sessionID, saveState: .changed)
+        #expect(workspace.sessions[0].hasUnsavedChanges)
+        #expect(workspace.sessions[0].saveState == .changed)
+
+        workspace.updateDocumentState(sessionID: sessionID, saveState: .recoveryAvailable)
+        #expect(workspace.sessions[0].hasUnsavedChanges)
+        #expect(workspace.sessions[0].recoveryState == .available)
+
+        workspace.updateDocumentState(sessionID: sessionID, saveState: .saved)
+        #expect(!workspace.sessions[0].hasUnsavedChanges)
+        #expect(workspace.sessions[0].saveState == .saved)
     }
 
     @Test("recents deduplicate bookmark data and enforce their limit")
@@ -166,5 +241,41 @@ struct WorkspaceSessionTests {
         #expect(restored.sessions[0].hasUnsavedChanges)
         #expect(restored.sessions[0].externalChangeState == .unchanged)
         #expect(WorkspaceState.restored(from: Data("invalid".utf8)) == nil)
+    }
+
+    @Test("workspace restoration merges duplicate reusable tool sessions and preserves selection")
+    func workspaceRestorationDeduplicatesReusableTools() throws {
+        let firstMerge = WorkspaceSession(kind: .merge, title: "Merge")
+        let duplicateMerge = WorkspaceSession(kind: .merge, title: "Merge Copy")
+        let split = WorkspaceSession(kind: .split, title: "Split")
+        let document = WorkspaceSession(kind: .folioDocument, title: "Draft")
+        let workspace = WorkspaceState(
+            sessions: [document, firstMerge, duplicateMerge, split],
+            selectedSessionID: duplicateMerge.id
+        )
+
+        let restored = try #require(WorkspaceState.restored(from: workspace.encodedForRestoration()))
+
+        #expect(restored.sessions.map(\.kind) == [.folioDocument, .merge, .split])
+        #expect(restored.selectedSessionID == firstMerge.id)
+        #expect(restored.sessions.first(where: { $0.kind == .merge })?.title == "Merge")
+    }
+
+    @Test("restoration keeps distinct document sessions while deduplicating tools")
+    func workspaceRestorationKeepsDistinctDocuments() throws {
+        let firstDocument = WorkspaceSession(kind: .folioDocument, title: "First")
+        let secondDocument = WorkspaceSession(kind: .folioDocument, title: "Second")
+        let firstConvert = WorkspaceSession(kind: .convert, title: "Convert")
+        let duplicateConvert = WorkspaceSession(kind: .convert, title: "Convert Copy")
+        let workspace = WorkspaceState(
+            sessions: [firstDocument, secondDocument, firstConvert, duplicateConvert],
+            selectedSessionID: secondDocument.id
+        )
+
+        let restored = try #require(WorkspaceState.restored(from: workspace.encodedForRestoration()))
+
+        #expect(restored.sessions.filter { $0.kind == .folioDocument }.count == 2)
+        #expect(restored.sessions.filter { $0.kind == .convert }.count == 1)
+        #expect(restored.selectedSessionID == secondDocument.id)
     }
 }

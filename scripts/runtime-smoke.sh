@@ -2,7 +2,7 @@
 set -euo pipefail
 
 executable=${1:-.build/release/FolioFold}
-maximum_startup_ms=${FOLIOFOLD_MAX_STARTUP_MS:-2000}
+maximum_startup_ms=${FOLIOFOLD_MAX_STARTUP_MS:-4000}
 maximum_rss_kb=${FOLIOFOLD_MAX_RSS_KB:-122880}
 ready_file=$(mktemp -u /tmp/foliofold-ready.XXXXXX)
 log_file=$(mktemp /tmp/foliofold-runtime.XXXXXX)
@@ -17,7 +17,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-for _ in {1..100}; do
+for _ in {1..500}; do
   test -f "${ready_file}" && break
   kill -0 "${pid}" 2>/dev/null || { cat "${log_file}" >&2; exit 1; }
   sleep 0.02

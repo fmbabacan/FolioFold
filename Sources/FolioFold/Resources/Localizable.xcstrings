@@ -1,6 +1,19 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ PDF file\\(groups.count == 1 ? ": {},
+    "%@ block, position %@ of %@": {},
+    "%@%": {},
+    "%@, %@), position %@ of %@": {},
+    "%@.rounded())) percent": {},
+    "%@: %@": {},
+    ".": {},
+    "1. Create fields for changing content.": {},
+    "2. Bind each field to a document block.": {},
+    "3. Enter values and generate the finished document.": {},
+    "A Visual Signature is an image annotation. It does not cryptographically sign or certify the PDF.": {},
+    "A field defines the data, a binding chooses the block it fills, a value supplies the content, and Generate Document writes the formatted result into bound blocks.": {},
+    "A visual signature is an image annotation, not a certified digital signature.": {},
     "About FolioFold": {
       "localizations": {
         "tr": {
@@ -11,11 +24,122 @@
         }
       }
     },
+    "Actual Size": {},
+    "Add Annotation and Export…": {},
+    "Add Block": {},
+    "Add Form Field and Export…": {},
+    "Add Note and Export…": {},
+    "Add PDFs and arrange them in the order they should be combined.": {},
+    "Add Selected Block": {},
+    "Add Template Field": {},
+    "Add Text Field and Export…": {},
+    "Add the selected block type": {},
+    "Add…": {},
+    "Add a field, then bind it to a block to create a reusable template.": {},
+    "Add at least one choice.": {},
+    "Add at least two PDFs to define the merge order.": {},
+    "Add images, text, RTF, or local HTML to create a PDF.": {},
+    "Adds another content block": {},
+    "Adds space for another content block": {},
+    "Annotation": {},
+    "Annotation type": {},
+    "Apply Redaction to New PDF…": {},
+    "Block Bindings": {},
+    "Block content": {},
+    "Block type": {},
+    "Bound to %@": {},
+    "Cancel": {},
+    "Cancel current operation": {},
+    "Changes to %@ will be lost.": {},
+    "Check Box": {},
     "Check for Updates…": {},
+    "Choice List": {},
+    "Choices separated by commas": {},
+    "Choose Files…": {},
+    "Choose Image…": {},
+    "Choose Output Folder and Split…": {},
+    "Choose PDF Files…": {},
+    "Choose PDF…": {},
+    "Choose Signature Image…": {},
+    "Choose Source Files…": {},
+    "Choose a PDF and export selected pages, ranges, every N pages, or individual pages.": {},
+    "Choose a PDF…": {},
+    "Choose one PDF to configure its split outputs.": {},
+    "Choose pages or ranges to export as separate PDFs.": {},
+    "Choose two or more PDF files, arrange their order, then export a combined PDF.": {},
+    "Clear Drawing": {},
+    "Close %@ tab": {},
+    "Close Current Tab": {},
+    "Close Unsaved Session?": {},
+    "Close Without Saving": {},
     "Contact Support": {},
     "Contact Support…": {},
     "Continue": {},
+    "Convert": {},
+    "Convert Files": {},
+    "Convert local images, plain text, RTF, or local HTML to PDF without uploading files.": {},
+    "Convert local images, plain text, RTF, or local HTML without uploading files. Combined mode creates one PDF in the listed source order.": {},
+    "Convert supported local files without uploading them.": {},
+    "Coordinates use PDF page points. Applying redactions creates a new rasterized PDF and never overwrites the source.": {},
+    "Create": {},
+    "Create Signature…": {},
+    "Create Visual Signature": {},
+    "Create Visual Signature…": {},
+    "Create or open a document to begin.": {},
+    "Currency": {},
+    "Current page number": {},
+    "Current zoom": {},
+    "Date": {},
+    "Date, number, and currency values use the current locale. Repeatable table rows remain structured template data in the FolioFold document.": {},
+    "Default value": {},
+    "Delete": {},
+    "Delete Block": {},
+    "Delete Page": {},
+    "Delete Template Field": {},
+    "Discard Recovery Data": {},
+    "Divider": {},
+    "Document": {},
+    "Document Changed Outside FolioFold": {},
+    "Document actions": {},
+    "Document content": {},
+    "Document history": {},
+    "Done": {},
+    "Drag handle for %@ block": {},
+    "Drag to reorder this block": {},
+    "Draw a signature before using it.": {},
+    "Draw a visual signature with a mouse or trackpad": {},
+    "Draw the redaction area directly on the selected page.": {},
+    "Draw with a mouse or trackpad, import an image, or reuse a Visual Signature stored locally on this Mac.": {},
+    "Drag to draw. Arrow keys move by 1 point, Option-Arrows move by 10, and Shift-Arrows resize.": {},
+    "Draw with a mouse or trackpad, import an image, or reuse a signature stored locally on this Mac.": {},
+    "Drawing": {},
+    "Drawn signature selected.": {},
+    "Drop Files to Convert": {},
+    "Drop PDFs or FolioFold Documents to Open": {},
+    "Drop PDFs or FolioFold documents to open": {},
+    "Drop a PDF to Split": {},
+    "Drop a PDF to split": {},
+    "Drop supported files to convert": {},
+    "Duplicate": {},
+    "Duplicate Page": {},
+    "Each page becomes a separate PDF.": {},
+    "Enter a valid value for ": {},
+    "Enter the PDF password. The password is used only for this open document and is not saved.": {},
+    "Enter the password for this encrypted FolioFold document.": {},
+    "Export Merged PDF…": {},
+    "Export PDF": {},
+    "Export PDF…": {},
+    "Export Page Images…": {},
+    "Export…": {},
+    "Field name": {},
+    "Field type": {},
+    "Find": {},
+    "Find in PDF": {},
+    "Fit Page": {},
+    "Fit Width": {},
+    "FolioFold": {},
     "FolioFold Help and Source": {},
+    "FolioFold found a verified recovery snapshot. Restore it or keep the last saved document.": {},
     "FolioFold is an independent, open-source workspace for creating structured documents and working with PDFs. Merge, split, convert, annotate, redact, and build reusable templates without sending your files away.": {
       "localizations": {
         "tr": {
@@ -26,8 +150,29 @@
         }
       }
     },
+    "Form Field": {},
+    "Format": {},
+    "Generate Document": {},
+    "Generate from Template": {},
+    "Generated document from template.": {},
+    "Generated value": {},
+    "Heading": {},
+    "Height": {},
+    "Highlight": {},
+    "History": {},
+    "How Templates Work": {},
     "If you find a problem or have an idea, please contact %@.": {},
-    "Thank you for using FolioFold. Your support helps this independent macOS app continue to improve.": {},
+    "Image": {},
+    "Image ready": {},
+    "Import Signature Image…": {},
+    "Imported signature image selected.": {},
+    "Insert": {},
+    "Insert content": {},
+    "Insert content or use a template": {},
+    "Keep Current Work": {},
+    "Link": {},
+    "Link destination": {},
+    "List": {},
     "Made with care for people who want useful document tools without giving up privacy. Thanks for being part of FolioFold’s journey.": {
       "localizations": {
         "tr": {
@@ -38,124 +183,23 @@
         }
       }
     },
-    "Version": {},
-    "Version %@": {},
-    "View on GitHub": {},
-    "Your documents, thoughtfully handled on your Mac.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Belgeleriniz, Mac’inizde özenle işlenir."
-          }
-        }
-      }
-    },
-    "Your documents stay on this Mac.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Belgeleriniz bu Mac’te kalır."
-          }
-        }
-      }
-    },
-    "Welcome to FolioFold": {},
-    ".": {},
-    "A visual signature is an image annotation, not a certified digital signature.": {},
-    "Add Annotation and Export…": {},
-    "Add Block": {},
-    "Add Form Field and Export…": {},
-    "Add Note and Export…": {},
-    "Add PDFs and arrange them in the order they should be combined.": {},
-    "Add Template Field": {},
-    "Add Text Field and Export…": {},
-    "Add a field, then bind it to a block to create a reusable template.": {},
-    "Add at least one choice.": {},
-    "Adds another content block": {},
-    "Adds space for another content block": {},
-    "Annotation": {},
-    "Annotation type": {},
-    "Apply Redaction to New PDF…": {},
-    "Block Bindings": {},
-    "Block content": {},
-    "Block type": {},
-    "Cancel": {},
-    "Changes to %@ will be lost.": {},
-    "Check Box": {},
-    "Choice List": {},
-    "Choices separated by commas": {},
-    "Choose Files…": {},
-    "Choose Image…": {},
-    "Choose Output Folder and Split…": {},
-    "Choose PDF…": {},
-    "Choose Signature Image…": {},
-    "Choose a PDF and export selected pages, ranges, every N pages, or individual pages.": {},
-    "Choose pages or ranges to export as separate PDFs.": {},
-    "Choose two or more PDF files, arrange their order, then export a combined PDF.": {},
-    "Clear Drawing": {},
-    "Close %@ tab": {},
-    "Close Unsaved Session?": {},
-    "Close Without Saving": {},
-    "Convert": {},
-    "Convert Files": {},
-    "Convert local images, plain text, RTF, or local HTML to PDF without uploading files.": {},
-    "Convert supported local files without uploading them.": {},
-    "Coordinates use PDF page points. Applying redactions creates a new rasterized PDF and never overwrites the source.": {},
-    "Create": {},
-    "Create Signature…": {},
-    "Create Visual Signature": {},
-    "Create or open a document to begin.": {},
-    "Currency": {},
-    "Date": {},
-    "Date, number, and currency values use the current locale. Repeatable table rows remain structured template data in the FolioFold document.": {},
-    "Default value": {},
-    "Delete": {},
-    "Delete Block": {},
-    "Delete Template Field": {},
-    "Discard Recovery Data": {},
-    "Divider": {},
-    "Document Changed Outside FolioFold": {},
-    "Document content": {},
-    "Done": {},
-    "Draw a signature before using it.": {},
-    "Draw a visual signature with a mouse or trackpad": {},
-    "Draw with a mouse or trackpad, import an image, or reuse a signature stored locally on this Mac.": {},
-    "Drawing": {},
-    "Drawn signature selected.": {},
-    "Duplicate": {},
-    "Enter a valid value for ": {},
-    "Enter the PDF password. The password is used only for this open document and is not saved.": {},
-    "Enter the password for this encrypted FolioFold document.": {},
-    "Export Merged PDF…": {},
-    "Export PDF…": {},
-    "Export Page Images…": {},
-    "Field name": {},
-    "Field type": {},
-    "FolioFold": {},
-    "FolioFold found a verified recovery snapshot. Restore it or keep the last saved document.": {},
-    "Form Field": {},
-    "Format": {},
-    "Generate Document": {},
-    "Generate from Template": {},
-    "Generated document from template.": {},
-    "Generated value": {},
-    "Heading": {},
-    "Height": {},
-    "Highlight": {},
-    "Image": {},
-    "Image ready": {},
-    "Import Signature Image…": {},
-    "Imported signature image selected.": {},
-    "Keep Current Work": {},
-    "Link": {},
-    "Link destination": {},
-    "List": {},
     "Merge": {},
     "Merge PDFs": {},
+    "Merge PDFs…": {},
+    "Mode": {},
+    "More PDF Actions": {},
+    "Move %@ block down": {},
+    "Move %@ block up": {},
+    "Move %@ down": {},
+    "Move %@ up": {},
     "Move Down": {},
+    "Move Page Down": {},
+    "Move Page Up": {},
     "Move Up": {},
+    "Narrower": {},
+    "Narrower Inspector": {},
+    "Narrower Thumbnails": {},
+    "Next Page": {},
     "No Open Session": {},
     "No PDF files selected": {},
     "No PDF selected": {},
@@ -170,20 +214,36 @@
     "Open Document": {},
     "Open…": {},
     "Operation progress": {},
+    "Output": {},
+    "Output mode": {},
+    "Output preview": {},
+    "PDF Editor": {},
     "PDF Password Required": {},
     "PDF document %@": {},
+    "PDF document, page %@ of %@, zoom %@.rounded())) percent": {},
     "PDF files": {},
+    "PDF inspector tool": {},
     "PDF unlocked with document permission restrictions.": {},
     "PDF unlocked.": {},
+    "PDF view size": {},
+    "Page": {},
+    "Page %@": {},
+    "Page %@ thumbnail": {},
     "Page %lld thumbnail": {},
+    "Page Actions": {},
     "Page Break": {},
     "Page thumbnails": {},
     "Pages": {},
+    "Pages per output: %@": {},
+    "Pages, for example 1, 3, 5": {},
+    "Panel Width": {},
     "Password": {},
     "Password Required": {},
     "Pin to Page": {},
     "Pinned block": {},
+    "Previous Page": {},
     "Radio Button": {},
+    "Ranges, for example 1-3, 5, 8-10": {},
     "Recents": {},
     "Recovered": {},
     "Recovery Data Available": {},
@@ -194,24 +254,36 @@
     "Redaction": {},
     "Redo": {},
     "Reload from Disk": {},
+    "Remove %@": {},
     "Remove recent document": {},
     "Repeatable Table Row": {},
     "Replace Source PDF": {},
     "Replace Source PDF?": {},
+    "Replace Source PDF…": {},
     "Replace Source…": {},
+    "Resize PDF panels": {},
     "Restore Recovery Data": {},
+    "Return this block to position %@ in the document flow": {},
     "Return to Flow": {},
+    "Returns to flow position %@.": {},
     "Rotate": {},
+    "Rotate Page": {},
+    "Save Document…": {},
+    "Save Document": {},
     "Save a Copy…": {},
     "Save and Use Drawing": {},
+    "Save FolioFold document": {},
     "Saved Signatures": {},
     "Saved signature selected.": {},
     "Save…": {},
     "Select %@ tab": {},
+    "Select Next Tab": {},
+    "Select Previous Tab": {},
     "Selected page": {},
     "Sequence": {},
     "Sequence number: (sequenceNumber)": {},
     "Shape": {},
+    "Sidebar Width": {},
     "Signature Field": {},
     "Signature drawing area": {},
     "Signature saved locally and selected.": {},
@@ -219,15 +291,18 @@
     "Source files": {},
     "Split": {},
     "Split PDF": {},
+    "Split PDF…": {},
     "Split options": {},
     "Start writing with blocks. Pin an item when it needs a fixed page position.": {},
     "Table": {},
     "Template": {},
     "Template Fields": {},
+    "Template field %@ will generate content for this block": {},
     "Templates…": {},
     "Text": {},
     "Text Field": {},
     "Text Note": {},
+    "Thank you for using FolioFold. Your support helps this independent macOS app continue to improve.": {},
     "The PDF password is incorrect. Try again.": {},
     "The encrypted package could not be authenticated.": {},
     "The password is incorrect. Try again.": {},
@@ -236,21 +311,118 @@
     "The source PDF will remain unchanged until you explicitly export or replace it.": {},
     "The source file changed on disk. Reload it, save a copy, or continue with the current work.": {},
     "The source file is no longer available. Save a copy to preserve the current work.": {},
+    "This creates an image annotation. It does not cryptographically sign or certify the PDF.": {},
     "This document was created by a newer FolioFold version and is read-only.": {},
     "This explicitly replaces the original PDF after writing and verifying a temporary copy. This action cannot be undone.": {},
     "This package requires a password. Password entry is available when reopening the document.": {},
     "Unable to Open Document": {},
     "Unable to save recovery snapshot: %@": {},
     "Undo": {},
+    "Undo or redo document changes": {},
     "Unlock PDF": {},
+    "Unsaved": {},
     "Unsaved changes": {},
     "Use": {},
     "Use Drawing": {},
+    "Version": {},
+    "Version %@": {},
+    "View": {},
+    "View on GitHub": {},
     "Visual Signature": {},
+    "Visual Signature drawing area": {},
+    "Welcome to FolioFold": {},
+    "Wider": {},
+    "Wider Inspector": {},
+    "Wider Thumbnails": {},
     "Width": {},
     "Workspace tabs": {},
     "X": {},
     "Y": {},
+    "You can also drag PDF files anywhere onto this workspace.": {},
+    "You can also drag a PDF anywhere onto this workspace.": {},
+    "You can also drag supported files anywhere onto this workspace.": {},
+    "Your documents stay on this Mac.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belgeleriniz bu Mac’te kalır."
+          }
+        }
+      }
+    },
+    "Your documents, thoughtfully handled on your Mac.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belgeleriniz, Mac’inizde özenle işlenir."
+          }
+        }
+      }
+    },
+    "Blocks flow into pages automatically. Reorder blocks as your document grows, or pin a block when it needs a fixed page position.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloklar otomatik olarak sayfalara akar. Belgeniz büyüdükçe blokları yeniden sıralayın veya sabit bir sayfa konumu gerektiğinde bloğu sabitleyin."
+          }
+        }
+      }
+    },
+    "Build your document with blocks": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belgenizi bloklarla oluşturun"
+          }
+        }
+      }
+    },
+    "Draw the annotation area directly on the selected page. Use arrow keys to move it and Shift-Arrows to resize it.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Açıklama alanını doğrudan seçili sayfaya çizin. Taşımak için ok tuşlarını, yeniden boyutlandırmak için Shift ve ok tuşlarını kullanın."
+          }
+        }
+      }
+    },
+    "Draw the form field directly on the selected page. Use arrow keys to move it and Shift-Arrows to resize it.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Form alanını doğrudan seçili sayfaya çizin. Taşımak için ok tuşlarını, yeniden boyutlandırmak için Shift ve ok tuşlarını kullanın."
+          }
+        }
+      }
+    },
+    "Open tabs menu": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Açık sekmeler menüsü"
+          }
+        }
+      }
+    },
+    "Show all open tabs": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tüm açık sekmeleri göster"
+          }
+        }
+      }
+    },
+    "Zoom In": {},
+    "Zoom Out": {},
     "calendar": {},
     "doc.text.magnifyingglass": {},
     "dollarsign.circle": {},
@@ -258,11 +430,14 @@
     "folio.templates": {},
     "number": {},
     "number.square": {},
+    "of %@": {},
+    "part-\\(String(format: ": {},
     "photo": {},
     "signature": {},
     "tablecells": {},
     "textformat": {},
-    "trash": {}
+    "trash": {},
+    "…and %@ more": {}
   },
   "version": "1.0"
 }

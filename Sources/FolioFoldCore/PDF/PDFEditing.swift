@@ -158,6 +158,24 @@ public struct PDFFormInput: Sendable {
 public struct PDFFormOperation: PDFOperation {
     public init() {}
 
+    public static func normalizedFieldName(_ name: String) -> String? {
+        let normalized = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty,
+              normalized.caseInsensitiveCompare("field") != .orderedSame,
+              normalized.range(of: #"^[A-Za-z][A-Za-z0-9_.-]{1,63}$"#, options: .regularExpression) != nil else {
+            return nil
+        }
+        return normalized
+    }
+
+    public static func normalizedChoiceOptions(_ options: [String]) -> [String]? {
+        let normalized = options.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        guard !normalized.isEmpty, normalized.allSatisfy({ !$0.isEmpty }) else { return nil }
+        let folded = normalized.map { $0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current) }
+        guard Set(folded).count == normalized.count else { return nil }
+        return normalized
+    }
+
     public func run(_ input: PDFFormInput, context: PDFOperationContext) async throws -> URL {
         try await Task.detached(priority: .userInitiated) {
             guard !input.fields.isEmpty || !input.valuesByName.isEmpty,
@@ -190,17 +208,41 @@ public struct PDFFormOperation: PDFOperation {
                 ))
             }
 
+            var pendingNames = Set<String>()
             for descriptor in input.fields {
                 try context.checkCancellation()
-                guard !descriptor.name.isEmpty,
+                guard let normalizedName = Self.normalizedFieldName(descriptor.name),
                       descriptor.bounds.width > 0, descriptor.bounds.height > 0,
                       let page = document.page(at: descriptor.pageIndex) else {
                     throw PDFOperationError.invalidPageSelection
                 }
-                guard !existing.contains(where: { $0.fieldName == descriptor.name }) else {
+                let comparisonName = normalizedName.folding(
+                    options: [.caseInsensitive, .diacriticInsensitive],
+                    locale: .current
+                )
+                guard !pendingNames.contains(comparisonName),
+                      !existing.contains(where: {
+                          $0.fieldName?.folding(
+                              options: [.caseInsensitive, .diacriticInsensitive],
+                              locale: .current
+                          ) == comparisonName
+                      }) else {
                     throw PDFOperationError.invalidInput
                 }
-                page.addAnnotation(Self.makeField(descriptor))
+                var validatedDescriptor = descriptor
+                validatedDescriptor.name = normalizedName
+                if case .choice(let options) = descriptor.kind {
+                    guard let normalizedOptions = Self.normalizedChoiceOptions(options) else {
+                        throw PDFOperationError.invalidInput
+                    }
+                    validatedDescriptor.kind = .choice(options: normalizedOptions)
+                    if let value = validatedDescriptor.value,
+                       !normalizedOptions.contains(value) {
+                        throw PDFOperationError.invalidInput
+                    }
+                }
+                pendingNames.insert(comparisonName)
+                page.addAnnotation(Self.makeField(validatedDescriptor))
                 completed += 1
                 context.reportProgress(.init(
                     completedUnitCount: completed,

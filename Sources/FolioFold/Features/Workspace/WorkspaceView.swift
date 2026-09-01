@@ -2,8 +2,17 @@ import FolioFoldCore
 import SwiftUI
 import UniformTypeIdentifiers
 
+extension Notification.Name {
+    static let folioFoldSelectNextTab = Notification.Name("FolioFold.selectNextTab")
+    static let folioFoldSelectPreviousTab = Notification.Name("FolioFold.selectPreviousTab")
+    static let folioFoldCloseCurrentTab = Notification.Name("FolioFold.closeCurrentTab")
+}
+
 struct WorkspaceView: View {
     let openRequest: Int
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var workspace = WorkspaceState.fresh()
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var pendingClose: WorkspaceSession?
@@ -11,6 +20,7 @@ struct WorkspaceView: View {
     @State private var presentedError: String?
     @State private var externalChangeSession: WorkspaceSession?
     @State private var documentReloadToken = 0
+    @State private var isOpenDropTargeted = false
     @State private var externalChangeTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
     @AppStorage("recentDocuments") private var storedRecents = Data()
     @AppStorage("workspaceRestorationState") private var storedWorkspace = Data()
@@ -56,6 +66,20 @@ struct WorkspaceView: View {
                         }
                     }
                 }
+
+                Section("Sidebar Width") {
+                    HStack {
+                        Button("Narrower", systemImage: "arrow.left.to.line") {
+                            SplitPanelAdjustment.workspaceSidebar.post(delta: -20)
+                        }
+                        .accessibilityIdentifier("sidebar.width.decrease")
+
+                        Button("Wider", systemImage: "arrow.right.to.line") {
+                            SplitPanelAdjustment.workspaceSidebar.post(delta: 20)
+                        }
+                        .accessibilityIdentifier("sidebar.width.increase")
+                    }
+                }
             }
             .navigationSplitViewColumnWidth(
                 min: DesignTokens.sidebarMinimumWidth,
@@ -70,8 +94,38 @@ struct WorkspaceView: View {
                 Divider()
                 content
             }
+            .id(workspace.selectedSessionID)
+        }
+        .background {
+            PersistentSplitView(
+                autosaveName: "FolioFold.WorkspaceSplit",
+                panels: [.workspaceSidebar]
+            )
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
         }
         .tint(DesignTokens.inkBlue)
+        .transaction { transaction in
+            if reduceMotion {
+                transaction.disablesAnimations = true
+            }
+        }
+        .overlay {
+            if isOpenDropTargeted {
+                ZStack {
+                    Color.black.opacity(0.18)
+                    Label("Drop PDFs or FolioFold Documents to Open", systemImage: "folder.badge.plus")
+                        .font(.title2.bold())
+                        .padding(24)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+                }
+                .accessibilityLabel("Drop PDFs or FolioFold documents to open")
+                .accessibilityIdentifier("workspace.open-drop-target")
+            }
+        }
+        .dropDestination(for: URL.self) { urls, _ in
+            acceptDroppedDocuments(urls)
+        } isTargeted: { isOpenDropTargeted = $0 }
         .onAppear {
             restoreWorkspace()
             signalRuntimeReadinessIfRequested()
@@ -79,6 +133,15 @@ struct WorkspaceView: View {
         .onChange(of: workspace) { _, _ in persistWorkspace() }
         .onChange(of: openRequest) { _, _ in isImporting = true }
         .onReceive(externalChangeTimer) { _ in checkSelectedDocumentForExternalChanges() }
+        .onReceive(NotificationCenter.default.publisher(for: .folioFoldSelectNextTab)) { _ in
+            workspace.selectAdjacentSession(forward: true)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .folioFoldSelectPreviousTab)) { _ in
+            workspace.selectAdjacentSession(forward: false)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .folioFoldCloseCurrentTab)) { _ in
+            closeSelectedSession()
+        }
         .fileImporter(
             isPresented: $isImporting,
             allowedContentTypes: [.pdf, UTType(filenameExtension: "foliofold") ?? .data],
@@ -141,58 +204,103 @@ struct WorkspaceView: View {
     }
 
     private var tabStrip: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: DesignTokens.tabSpacing) {
-                ForEach(Array(workspace.sessions.enumerated()), id: \.element.id) { index, session in
-                    tab(session, at: index)
+        HStack(spacing: 0) {
+            ScrollView(.horizontal) {
+                HStack(spacing: DesignTokens.tabSpacing) {
+                    ForEach(Array(workspace.sessions.enumerated()), id: \.element.id) { index, session in
+                        tab(session, at: index)
+                    }
                 }
+                .padding(6)
             }
-            .padding(6)
-            .accessibilityLabel("Workspace tabs")
-            .accessibilityIdentifier("workspace.tabs")
+
+            if workspace.sessions.count > 1 {
+                Menu {
+                    ForEach(workspace.sessions) { session in
+                        Button {
+                            workspace.selectedSessionID = session.id
+                            announce("Selected \(session.title) tab")
+                        } label: {
+                            Label(session.title, systemImage: icon(for: session.kind))
+                        }
+                    }
+                } label: {
+                    Image(systemName: "chevron.down.circle")
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .padding(.trailing, 8)
+                .help("Show all open tabs")
+                .accessibilityLabel("Open tabs menu")
+                .accessibilityIdentifier("workspace.tabs.overflow")
+            }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Workspace tabs")
     }
 
     private func tab(_ session: WorkspaceSession, at index: Int) -> some View {
-        HStack(spacing: 6) {
+        let isSelected = workspace.selectedSessionID == session.id
+
+        return HStack(spacing: 6) {
             Button {
                 workspace.selectedSessionID = session.id
+                announce("Selected \(session.title) tab")
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: icon(for: session.kind))
                     Text(session.title)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                     if session.recoveryState != .none {
                         Image(systemName: "arrow.counterclockwise.circle")
                             .accessibilityLabel("Recovered")
                     }
                     if session.hasUnsavedChanges {
-                        Circle()
-                            .frame(width: 6, height: 6)
+                        Label("Unsaved", systemImage: "circle.fill")
+                            .font(.caption2.weight(.semibold))
+                            .labelStyle(.titleAndIcon)
                             .accessibilityLabel("Unsaved changes")
                     }
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("workspace.tab.select.\(session.id.uuidString)")
             .accessibilityLabel("Select \(session.title) tab")
-            .accessibilityIdentifier("workspace.tab.\(session.kind.rawValue)")
+            .accessibilityValue(tabAccessibilityValue(for: session))
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
 
             Button {
                 close(session)
             } label: {
                 Image(systemName: "xmark")
             }
-            .accessibilityLabel(Text("Close \(session.title) tab"))
+            .accessibilityIdentifier("workspace.tab.close.\(session.id.uuidString)")
+            .accessibilityLabel("Close \(session.title) tab")
             .labelStyle(.iconOnly)
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
+        .contentShape(RoundedRectangle(cornerRadius: DesignTokens.cornerRadius))
         .background(
-            workspace.selectedSessionID == session.id
-                ? Color.primary.opacity(0.08)
+            isSelected
+                ? DesignTokens.inkBlue.opacity(colorSchemeContrast == .increased ? 0.30 : 0.18)
                 : .clear,
             in: RoundedRectangle(cornerRadius: DesignTokens.cornerRadius)
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.cornerRadius)
+                .stroke(
+                    isSelected
+                        ? (differentiateWithoutColor ? Color.primary : DesignTokens.inkBlue)
+                        : Color.secondary.opacity(0.25),
+                    lineWidth: isSelected
+                        ? (colorSchemeContrast == .increased || differentiateWithoutColor ? 3 : 2)
+                        : 1
+                )
+        }
+        .help(tabHelp(for: session))
         .draggable(session.id.uuidString)
         .dropDestination(for: String.self) { sessionIDs, _ in
             guard let sessionID = sessionIDs.first,
@@ -201,8 +309,17 @@ struct WorkspaceView: View {
                 return false
             }
             workspace.moveSession(from: source, to: index)
+            announce("Moved \(session.title) tab to position \(index + 1)")
             return true
         }
+    }
+
+    private func announce(_ message: String) {
+        NSAccessibility.post(
+            element: NSApp.mainWindow as Any,
+            notification: .announcementRequested,
+            userInfo: [.announcement: message, .priority: NSAccessibilityPriorityLevel.medium.rawValue]
+        )
     }
 
     @ViewBuilder
@@ -230,7 +347,13 @@ struct WorkspaceView: View {
                 emptySession(session)
             }
         case .folioDocument:
-            FolioDocumentWorkspace(title: session.title, url: session.documentURL)
+            FolioDocumentWorkspace(
+                title: session.title,
+                url: session.documentURL,
+                onSaveStateChange: { saveState in
+                    workspace.updateDocumentState(sessionID: session.id, saveState: saveState)
+                }
+            )
                 .id("\(session.id.uuidString)-\(documentReloadToken)")
         case .merge:
             MergeWorkspace()
@@ -253,6 +376,26 @@ struct WorkspaceView: View {
         if workspace.requestClose(sessionID: session.id) == .needsConfirmation {
             pendingClose = session
         }
+    }
+
+    private func closeSelectedSession() {
+        guard let selectedSessionID = workspace.selectedSessionID,
+              let session = workspace.sessions.first(where: { $0.id == selectedSessionID }) else { return }
+        close(session)
+    }
+
+    private func tabAccessibilityValue(for session: WorkspaceSession) -> String {
+        var values = [workspace.selectedSessionID == session.id ? "Selected" : "Not selected"]
+        if session.hasUnsavedChanges { values.append("Unsaved changes") }
+        if session.recoveryState != .none { values.append("Recovery data available") }
+        return values.joined(separator: ", ")
+    }
+
+    private func tabHelp(for session: WorkspaceSession) -> String {
+        var value = session.title
+        if session.hasUnsavedChanges { value += " - Unsaved changes" }
+        if session.recoveryState != .none { value += " - Recovery data available" }
+        return value
     }
 
     private func openDocument(_ url: URL) {
@@ -318,6 +461,19 @@ struct WorkspaceView: View {
         storedWorkspace = (try? workspace.encodedForRestoration()) ?? Data()
     }
 
+    private func acceptDroppedDocuments(_ urls: [URL]) -> Bool {
+        let supported = urls.filter {
+            let extensionName = $0.pathExtension.lowercased()
+            return extensionName == "pdf" || extensionName == "foliofold"
+        }
+        for url in supported { openDocument(url) }
+        let rejected = urls.count - supported.count
+        if rejected > 0 {
+            presentedError = "FolioFold can open PDF and .foliofold documents. Rejected \(rejected) unsupported file\(rejected == 1 ? "" : "s")."
+        }
+        return !supported.isEmpty
+    }
+
     private func signalRuntimeReadinessIfRequested() {
         guard let path = ProcessInfo.processInfo.environment["FOLIOFOLD_READY_FILE"],
               !path.isEmpty else { return }
@@ -349,7 +505,33 @@ struct WorkspaceView: View {
         systemImage: String,
         kind: WorkspaceSession.Kind
     ) -> some View {
-        Button(title, systemImage: systemImage) { workspace.openTool(kind) }
+        let isOpen = workspace.sessions.contains(where: { $0.kind == kind })
+        let isSelected = workspace.sessions.first(where: { $0.id == workspace.selectedSessionID })?.kind == kind
+
+        return Button {
+            workspace.openTool(kind)
+        } label: {
+            HStack {
+                Label(title, systemImage: systemImage)
+                Spacer()
+                if isOpen {
+                    Text("Open")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(isSelected ? DesignTokens.inkBlue : Color.secondary)
+                        .accessibilityHidden(true)
+                }
+            }
+        }
+            .accessibilityValue(
+                isSelected
+                    ? "Open and selected"
+                    : (isOpen ? "Open in another tab" : "Not open")
+            )
+            .accessibilityHint(
+                isOpen
+                    ? "Focuses the existing workspace and preserves its current state."
+                    : "Opens one reusable workspace for this tool."
+            )
             .accessibilityIdentifier("sidebar.\(kind.rawValue)")
     }
 

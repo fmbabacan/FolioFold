@@ -1,29 +1,316 @@
 import FolioFoldCore
 import PDFKit
+import QuartzCore
 import SwiftUI
 import UniformTypeIdentifiers
 
+@MainActor
+final class InteractivePDFView: PDFView {
+    enum PlacementStyle {
+        case annotation
+        case form
+        case redaction
+    }
+
+    var placementStyle: PlacementStyle? {
+        didSet {
+            placementLayer.isHidden = placementStyle == nil
+            updatePlacementAppearance()
+            needsLayout = true
+        }
+    }
+    var placementPageIndex = 0
+    var placementBounds = CGRect.zero {
+        didSet { updatePlacementPreview() }
+    }
+    var onPlacementBoundsChanged: ((CGRect) -> Void)?
+
+    private let placementLayer = CAShapeLayer()
+    private var dragStart: CGPoint?
+    private var dragPage: PDFPage?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        placementLayer.lineWidth = 2
+        placementLayer.lineDashPattern = [6, 4]
+        layer?.addSublayer(placementLayer)
+        updatePlacementAppearance()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override func layout() {
+        super.layout()
+        updatePlacementPreview()
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        guard placementStyle != nil,
+              let page = page(for: convert(event.locationInWindow, from: nil), nearest: true),
+              document?.index(for: page) == placementPageIndex else {
+            super.mouseDown(with: event)
+            return
+        }
+        window?.makeFirstResponder(self)
+        let point = pagePoint(for: event, on: page)
+        dragStart = point
+        dragPage = page
+        setPlacementBounds(CGRect(origin: point, size: .zero), on: page)
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard placementStyle != nil,
+              let start = dragStart,
+              let page = dragPage else {
+            super.mouseDragged(with: event)
+            return
+        }
+        let point = pagePoint(for: event, on: page)
+        setPlacementBounds(normalizedRect(from: start, to: point), on: page)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        guard placementStyle != nil,
+              let start = dragStart,
+              let page = dragPage else {
+            super.mouseUp(with: event)
+            return
+        }
+        let point = pagePoint(for: event, on: page)
+        var bounds = normalizedRect(from: start, to: point)
+        if bounds.width < 4 || bounds.height < 4 {
+            bounds = CGRect(x: point.x, y: point.y, width: 72, height: 24)
+        }
+        setPlacementBounds(bounds, on: page)
+        dragStart = nil
+        dragPage = nil
+    }
+
+    override func keyDown(with event: NSEvent) {
+        guard placementStyle != nil,
+              let page = document?.page(at: placementPageIndex) else {
+            super.keyDown(with: event)
+            return
+        }
+        let step: CGFloat = event.modifierFlags.contains(.option) ? 10 : 1
+        var bounds = placementBounds
+        let resize = event.modifierFlags.contains(.shift)
+        switch event.keyCode {
+        case 123:
+            if resize { bounds.size.width -= step } else { bounds.origin.x -= step }
+        case 124:
+            if resize { bounds.size.width += step } else { bounds.origin.x += step }
+        case 125:
+            if resize { bounds.size.height -= step } else { bounds.origin.y -= step }
+        case 126:
+            if resize { bounds.size.height += step } else { bounds.origin.y += step }
+        default:
+            super.keyDown(with: event)
+            return
+        }
+        setPlacementBounds(bounds, on: page)
+    }
+
+    private func pagePoint(for event: NSEvent, on page: PDFPage) -> CGPoint {
+        let viewPoint = convert(event.locationInWindow, from: nil)
+        return convert(viewPoint, to: page)
+    }
+
+    private func normalizedRect(from first: CGPoint, to second: CGPoint) -> CGRect {
+        CGRect(
+            x: min(first.x, second.x),
+            y: min(first.y, second.y),
+            width: abs(second.x - first.x),
+            height: abs(second.y - first.y)
+        )
+    }
+
+    private func setPlacementBounds(_ proposed: CGRect, on page: PDFPage) {
+        let pageBounds = page.bounds(for: .mediaBox)
+        var constrained = proposed.standardized
+        constrained.size.width = min(max(4, constrained.width), pageBounds.width)
+        constrained.size.height = min(max(4, constrained.height), pageBounds.height)
+        constrained.origin.x = min(max(pageBounds.minX, constrained.minX), pageBounds.maxX - constrained.width)
+        constrained.origin.y = min(max(pageBounds.minY, constrained.minY), pageBounds.maxY - constrained.height)
+        placementBounds = constrained
+        onPlacementBoundsChanged?(constrained)
+    }
+
+    private func updatePlacementPreview() {
+        guard placementStyle != nil,
+              !placementBounds.isEmpty,
+              let page = document?.page(at: placementPageIndex) else {
+            placementLayer.isHidden = true
+            return
+        }
+        placementLayer.isHidden = false
+        let viewRect = convert(placementBounds, from: page)
+        placementLayer.frame = bounds
+        placementLayer.path = CGPath(rect: viewRect, transform: nil)
+    }
+
+    private func updatePlacementAppearance() {
+        let color: NSColor
+        switch placementStyle {
+        case .annotation: color = .systemBlue
+        case .form: color = .systemGreen
+        case .redaction: color = .systemRed
+        case nil: color = .clear
+        }
+        placementLayer.fillColor = color.withAlphaComponent(0.22).cgColor
+        placementLayer.strokeColor = color.cgColor
+    }
+}
+
 struct PDFDocumentView: NSViewRepresentable {
     let document: PDFDocument
+    @Binding var selectedPage: Int
+    @Binding var scaleFactor: CGFloat
+    fileprivate let command: PDFViewCommand?
+    let searchText: String
+    let placementStyle: InteractivePDFView.PlacementStyle?
+    let placementPageIndex: Int
+    @Binding var placementBounds: CGRect
 
-    func makeNSView(context: Context) -> PDFView {
-        let view = PDFView()
+    @MainActor
+    final class Coordinator: NSObject {
+        var selectedPage: Binding<Int>
+        var scaleFactor: Binding<CGFloat>
+        var lastCommandID: UUID?
+        var lastSearchText = ""
+        var isUpdating = false
+        weak var view: InteractivePDFView?
+
+        init(selectedPage: Binding<Int>, scaleFactor: Binding<CGFloat>) {
+            self.selectedPage = selectedPage
+            self.scaleFactor = scaleFactor
+        }
+
+        @objc func pageChanged() {
+            guard !isUpdating,
+                  let view,
+                  let page = view.currentPage,
+                  let index = view.document?.index(for: page) else { return }
+            selectedPage.wrappedValue = index
+        }
+
+        @objc func scaleChanged() {
+            guard !isUpdating, let view else { return }
+            scaleFactor.wrappedValue = view.scaleFactor
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(selectedPage: $selectedPage, scaleFactor: $scaleFactor)
+    }
+
+    func makeNSView(context: Context) -> InteractivePDFView {
+        let view = InteractivePDFView()
         view.autoScales = true
         view.displayMode = .singlePageContinuous
         view.displayDirection = .vertical
         view.displaysPageBreaks = true
         view.document = document
+        view.onPlacementBoundsChanged = { bounds in
+            placementBounds = bounds
+        }
+        context.coordinator.view = view
+        let center = NotificationCenter.default
+        center.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.pageChanged),
+            name: .PDFViewPageChanged,
+            object: view
+        )
+        center.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.scaleChanged),
+            name: .PDFViewScaleChanged,
+            object: view
+        )
         return view
     }
 
-    func updateNSView(_ view: PDFView, context: Context) {
+    func updateNSView(_ view: InteractivePDFView, context: Context) {
+        context.coordinator.selectedPage = $selectedPage
+        context.coordinator.scaleFactor = $scaleFactor
         if view.document !== document {
             view.document = document
         }
+        view.placementStyle = placementStyle
+        view.placementPageIndex = placementPageIndex
+        view.placementBounds = placementBounds
+        context.coordinator.isUpdating = true
+        if document.pageCount > 0,
+           selectedPage >= 0,
+           selectedPage < document.pageCount,
+           let page = document.page(at: selectedPage),
+           view.currentPage !== page {
+            view.go(to: page)
+        }
+
+        if let command, context.coordinator.lastCommandID != command.id {
+            context.coordinator.lastCommandID = command.id
+            switch command.kind {
+            case .zoomIn:
+                view.autoScales = false
+                view.zoomIn(nil)
+            case .zoomOut:
+                view.autoScales = false
+                view.zoomOut(nil)
+            case .actualSize:
+                view.autoScales = false
+                view.scaleFactor = 1
+            case .fitPage:
+                view.displayMode = .singlePage
+                view.autoScales = true
+            case .fitWidth:
+                view.displayMode = .singlePageContinuous
+                view.autoScales = false
+                view.scaleFactor = view.scaleFactorForSizeToFit
+            }
+            scaleFactor = view.scaleFactor
+        }
+
+        if searchText != context.coordinator.lastSearchText {
+            context.coordinator.lastSearchText = searchText
+            view.clearSelection()
+            if !searchText.isEmpty,
+               let selection = document.findString(searchText, withOptions: [.caseInsensitive]).first {
+                view.setCurrentSelection(selection, animate: true)
+                view.scrollSelectionToVisible(nil)
+                if let page = selection.pages.first {
+                    selectedPage = document.index(for: page)
+                }
+            }
+        }
+        context.coordinator.isUpdating = false
     }
 }
 
+fileprivate struct PDFViewCommand: Equatable {
+    enum Kind { case zoomIn, zoomOut, actualSize, fitPage, fitWidth }
+    let id = UUID()
+    let kind: Kind
+}
+
 struct PDFWorkspace: View {
+    @Environment(\.undoManager) private var undoManager
+
+    private enum InspectorCategory: String, CaseIterable, Identifiable {
+        case pages = "Pages"
+        case annotation = "Annotate"
+        case form = "Form"
+        case redaction = "Redact"
+
+        var id: String { rawValue }
+    }
+
     private enum FormTool: String, CaseIterable, Identifiable {
         case text, checkBox, radioButton, choice, signature
         var id: String { rawValue }
@@ -63,20 +350,30 @@ struct PDFWorkspace: View {
     @State private var importedAnnotationData: Data?
     @State private var isImportingAnnotationImage = false
     @State private var isConfirmingSourceReplacement = false
-    @State private var formFieldName = "field"
+    @State private var formFieldName = ""
     @State private var formFieldValue = ""
     @State private var formTool: FormTool = .text
     @State private var formChoices = "Option 1, Option 2"
+    @State private var annotationBounds = CGRect(x: 72, y: 72, width: 240, height: 48)
+    @State private var formFieldBounds = CGRect(x: 72, y: 132, width: 240, height: 28)
     @State private var pdfPassword = ""
     @State private var isRequestingPDFPassword = false
     @State private var redactionX = 72.0
     @State private var redactionY = 72.0
     @State private var redactionWidth = 180.0
     @State private var redactionHeight = 36.0
+    @State private var isRedactionAdvancedExpanded = false
     @State private var message: String?
     @State private var isRunning = false
     @State private var progress = 0.0
     @State private var draggedPageIndex: Int?
+    @State private var undoTarget = PDFUndoTarget()
+    @State private var operationTask: Task<Void, Never>?
+    @State private var pdfViewCommand: PDFViewCommand?
+    @State private var pdfScaleFactor: CGFloat = 1
+    @State private var searchText = ""
+    @State private var inspectorCategory: InspectorCategory = .pages
+    @FocusState private var isSearchFocused: Bool
 
     init(url: URL) {
         self.url = url
@@ -138,6 +435,101 @@ struct PDFWorkspace: View {
 
             VStack(spacing: 0) {
                 HStack(spacing: 8) {
+                    Label("PDF Editor", systemImage: "doc.richtext")
+                        .font(.headline)
+                        .lineLimit(1)
+                        .accessibilityIdentifier("pdf.workspace-heading")
+
+                    Menu("Panel Width", systemImage: "rectangle.split.3x1") {
+                        Button("Narrower Thumbnails", systemImage: "arrow.left.to.line") {
+                            SplitPanelAdjustment.pdfThumbnails.post(delta: -20)
+                        }
+                        .accessibilityIdentifier("pdf.thumbnails.width.decrease")
+
+                        Button("Wider Thumbnails", systemImage: "arrow.right.to.line") {
+                            SplitPanelAdjustment.pdfThumbnails.post(delta: 20)
+                        }
+                        .accessibilityIdentifier("pdf.thumbnails.width.increase")
+
+                        Divider()
+
+                        Button("Narrower Inspector", systemImage: "arrow.right.to.line") {
+                            SplitPanelAdjustment.pdfInspector.post(delta: -20)
+                        }
+                        .accessibilityIdentifier("pdf.inspector.width.decrease")
+
+                        Button("Wider Inspector", systemImage: "arrow.left.to.line") {
+                            SplitPanelAdjustment.pdfInspector.post(delta: 20)
+                        }
+                        .accessibilityIdentifier("pdf.inspector.width.increase")
+                    }
+                    .help("Resize PDF panels")
+                    .accessibilityLabel("Resize PDF panels")
+
+                    ControlGroup {
+                        Button { goToPage(selectedPage - 1) } label: {
+                            Image(systemName: "chevron.left")
+                        }
+                        .help("Previous Page")
+                        .accessibilityLabel("Previous Page")
+                        .disabled(selectedPage == 0 || document.pageCount == 0)
+
+                        TextField("Page", value: pageNumberBinding, format: .number)
+                            .frame(width: 44)
+                            .multilineTextAlignment(.trailing)
+                            .accessibilityLabel("Current page number")
+                            .accessibilityValue("Page \(selectedPage + 1) of \(document.pageCount)")
+                            .accessibilityIdentifier("pdf.page-number")
+
+                        Text("of \(document.pageCount)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+
+                        Button { goToPage(selectedPage + 1) } label: {
+                            Image(systemName: "chevron.right")
+                        }
+                        .help("Next Page")
+                        .accessibilityLabel("Next Page")
+                        .disabled(selectedPage >= document.pageCount - 1 || document.pageCount == 0)
+                    }
+                    .controlGroupStyle(.navigation)
+
+                    ControlGroup {
+                        Button { sendPDFViewCommand(.zoomOut) } label: {
+                            Image(systemName: "minus.magnifyingglass")
+                        }
+                        .help("Zoom Out")
+                        .accessibilityLabel("Zoom Out")
+
+                        Text("\(zoomPercentage)%")
+                            .font(.caption.monospacedDigit())
+                            .frame(minWidth: 46)
+                            .accessibilityLabel("Current zoom")
+                            .accessibilityValue("\(zoomPercentage) percent")
+                            .accessibilityIdentifier("pdf.zoom-value")
+
+                        Button { sendPDFViewCommand(.zoomIn) } label: {
+                            Image(systemName: "plus.magnifyingglass")
+                        }
+                        .help("Zoom In")
+                        .accessibilityLabel("Zoom In")
+                    }
+                    .controlGroupStyle(.navigation)
+
+                    Menu("View", systemImage: "rectangle.inset.filled") {
+                        Button("Actual Size") { sendPDFViewCommand(.actualSize) }
+                        Button("Fit Page") { sendPDFViewCommand(.fitPage) }
+                        Button("Fit Width") { sendPDFViewCommand(.fitWidth) }
+                    }
+                    .help("PDF view size")
+
+                    TextField("Find", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(minWidth: 100, idealWidth: 140, maxWidth: 180)
+                        .focused($isSearchFocused)
+                        .accessibilityLabel("Find in PDF")
+                        .accessibilityIdentifier("pdf.find")
+
                     ControlGroup {
                         Button { movePage(by: -1) } label: {
                             Image(systemName: "arrow.up")
@@ -175,6 +567,9 @@ struct PDFWorkspace: View {
                             deletePage()
                         }
                         .disabled(document.pageCount <= 1 || isRunning)
+                        .help(document.pageCount <= 1
+                            ? "A PDF must contain at least one page."
+                            : "Delete Page \(selectedPage + 1)")
                     } label: {
                         Image(systemName: "doc.badge.ellipsis")
                     }
@@ -185,7 +580,7 @@ struct PDFWorkspace: View {
 
                     Spacer()
 
-                    Button("Export…", systemImage: "square.and.arrow.up") {
+                    Button("Export PDF…", systemImage: "square.and.arrow.up") {
                         exportWorkingPDF()
                     }
                     .buttonStyle(.borderedProminent)
@@ -206,12 +601,37 @@ struct PDFWorkspace: View {
                 }
                 .padding(10)
                 Divider()
-                PDFDocumentView(document: document)
+                PDFDocumentView(
+                    document: document,
+                    selectedPage: $selectedPage,
+                    scaleFactor: $pdfScaleFactor,
+                    command: pdfViewCommand,
+                    searchText: searchText,
+                    placementStyle: placementStyle,
+                    placementPageIndex: selectedPage,
+                    placementBounds: placementBoundsBinding
+                )
+                .accessibilityLabel(
+                    "PDF document, page \(selectedPage + 1) of \(document.pageCount), zoom \(Int((pdfScaleFactor * 100).rounded())) percent"
+                )
+                .accessibilityIdentifier("pdf.document-view")
             }
             .frame(minWidth: 500)
 
             Form {
-                Section("Pages") {
+                Picker("PDF inspector tool", selection: $inspectorCategory) {
+                    ForEach(InspectorCategory.allCases) { category in
+                        Text(category.rawValue).tag(category)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .accessibilityLabel("PDF inspector tool")
+                .accessibilityIdentifier("pdf.inspector-category")
+
+                switch inspectorCategory {
+                case .pages:
+                    Section("Pages") {
                     Picker("Selected page", selection: $selectedPage) {
                         ForEach(0..<max(1, document.pageCount), id: \.self) { index in
                             Text("Page \(index + 1)").tag(index)
@@ -220,8 +640,15 @@ struct PDFWorkspace: View {
                     .disabled(document.pageCount == 0)
                     Button("Export Page Images…") { exportImages() }
                         .disabled(document.pageCount == 0 || isRunning)
-                }
-                Section("Annotation") {
+                    }
+                    .accessibilityIdentifier("pdf.inspector.pages")
+
+                case .annotation:
+                    Section("Annotation") {
+                    Label("Draw the annotation area directly on the selected page. Use arrow keys to move it and Shift-Arrows to resize it.", systemImage: "rectangle.dashed")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("pdf.annotation-placement-help")
                     Picker("Annotation type", selection: $annotationTool) {
                         ForEach(AnnotationTool.allCases) { tool in
                             Text(tool.title).tag(tool)
@@ -232,55 +659,130 @@ struct PDFWorkspace: View {
                     }
                     if annotationTool == .link {
                         TextField("Link destination", text: $linkDestination)
+                            .accessibilityIdentifier("pdf.link-destination")
+                        validationMessage(
+                            linkValidationMessage,
+                            isValid: validatedLinkDestination != nil,
+                            identifier: "pdf.link-validation"
+                        )
                     }
                     if annotationTool == .image || annotationTool == .signature {
-                        Button(annotationTool == .signature ? "Choose Signature Image…" : "Choose Image…") {
+                        if annotationTool == .signature {
+                            Label(
+                                "A Visual Signature is an image annotation. It does not cryptographically sign or certify the PDF.",
+                                systemImage: "info.circle"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .accessibilityIdentifier("pdf.visual-signature-limitation")
+                        }
+                        Button(annotationTool == .signature ? "Choose Visual Signature Image…" : "Choose Image…") {
                             isImportingAnnotationImage = true
                         }
+                        .accessibilityIdentifier(
+                            annotationTool == .signature
+                                ? "pdf.visual-signature.choose-image"
+                                : "pdf.annotation.choose-image"
+                        )
                         if annotationTool == .signature {
                             SignatureCaptureButton(selectedData: $importedAnnotationData) { message = $0 }
                         }
-                        Text(importedAnnotationData == nil ? "No image selected" : "Image ready")
+                        Text(
+                            annotationTool == .signature
+                                ? (importedAnnotationData == nil
+                                    ? "No Visual Signature image selected"
+                                    : "Visual Signature image ready")
+                                : (importedAnnotationData == nil ? "No image selected" : "Image ready")
+                        )
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    if annotationTool == .signature {
-                        Text("A visual signature is an image annotation, not a certified digital signature.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Button("Add Annotation and Export…") { addSelectedAnnotation() }
+                    Button(
+                        annotationTool == .signature
+                            ? "Add Visual Signature and Export…"
+                            : "Add Annotation and Export…"
+                    ) { addSelectedAnnotation() }
                         .disabled(!canAddSelectedAnnotation || document.pageCount == 0 || isRunning)
-                }
-                Section("Form Field") {
+                    }
+                    .accessibilityIdentifier("pdf.inspector.annotation")
+
+                case .form:
+                    Section("Form Field") {
+                    Label("Draw the form field directly on the selected page. Use arrow keys to move it and Shift-Arrows to resize it.", systemImage: "rectangle.dashed")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("pdf.form-placement-help")
                     Picker("Field type", selection: $formTool) {
                         ForEach(FormTool.allCases) { tool in
                             Text(tool.title).tag(tool)
                         }
                     }
                     TextField("Field name", text: $formFieldName)
+                        .accessibilityIdentifier("pdf.form-field-name")
+                    validationMessage(
+                        formFieldValidationMessage,
+                        isValid: validatedFormFieldName != nil,
+                        identifier: "pdf.form-field-validation"
+                    )
                     TextField("Default value", text: $formFieldValue)
                     if formTool == .choice {
                         TextField("Choices separated by commas", text: $formChoices)
+                        validationMessage(
+                            choiceValidationMessage,
+                            isValid: validatedFormChoices != nil,
+                            identifier: "pdf.form-choice-validation"
+                        )
                     }
                     Button("Add Form Field and Export…") { addFormField() }
-                        .disabled(formFieldName.isEmpty || document.pageCount == 0 || isRunning)
-                }
-                Section("Redaction") {
-                    Text("Coordinates use PDF page points. Applying redactions creates a new rasterized PDF and never overwrites the source.")
+                        .disabled(!canAddFormField || document.pageCount == 0 || isRunning)
+                    }
+                    .accessibilityIdentifier("pdf.inspector.form")
+
+                case .redaction:
+                    Section("Redaction") {
+                    Label("Draw the redaction area directly on the selected page.", systemImage: "rectangle.dashed")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    LabeledContent("X") { TextField("X", value: $redactionX, format: .number) }
-                    LabeledContent("Y") { TextField("Y", value: $redactionY, format: .number) }
-                    LabeledContent("Width") { TextField("Width", value: $redactionWidth, format: .number) }
-                    LabeledContent("Height") { TextField("Height", value: $redactionHeight, format: .number) }
+                    Text("Drag to draw. Arrow keys move by 1 point, Option-Arrows move by 10, and Shift-Arrows resize.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Label(redactionValidationMessage, systemImage: redactionIsValid ? "checkmark.circle" : "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(redactionIsValid ? Color.secondary : Color.red)
+                        .accessibilityLabel((redactionIsValid ? "Valid: " : "Error: ") + redactionValidationMessage)
+                        .accessibilityIdentifier("pdf.redaction.validation")
+
+                    DisclosureGroup("Advanced coordinates", isExpanded: $isRedactionAdvancedExpanded) {
+                        LabeledContent("X") { TextField("X", value: $redactionX, format: .number) }
+                        LabeledContent("Y") { TextField("Y", value: $redactionY, format: .number) }
+                        LabeledContent("Width") { TextField("Width", value: $redactionWidth, format: .number) }
+                        LabeledContent("Height") { TextField("Height", value: $redactionHeight, format: .number) }
+                    }
+                    .accessibilityIdentifier("pdf.redaction.advanced")
+
                     Button("Apply Redaction to New PDF…", role: .destructive) { applyRedaction() }
-                        .disabled(redactionWidth <= 0 || redactionHeight <= 0 || document.pageCount == 0 || isRunning)
+                        .disabled(!redactionIsValid || document.pageCount == 0 || isRunning)
+                    }
+                    .accessibilityIdentifier("pdf.inspector.redaction")
                 }
-                OperationStatusView(isRunning: isRunning, progress: progress, message: message)
+
+                OperationStatusView(
+                    isRunning: isRunning,
+                    progress: progress,
+                    message: message,
+                    onCancel: cancelOperation
+                )
             }
             .formStyle(.grouped)
             .frame(minWidth: 290, idealWidth: 330, maxWidth: 400)
+        }
+        .background {
+            PersistentSplitView(
+                autosaveName: "FolioFold.PDFWorkspaceSplit",
+                panels: [.pdfThumbnails, .pdfInspector]
+            )
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
         }
         .fileImporter(
             isPresented: $isImportingAnnotationImage,
@@ -312,15 +814,158 @@ struct PDFWorkspace: View {
         } message: {
             Text("Enter the PDF password. The password is used only for this open document and is not saved.")
         }
+        .background {
+            Group {
+                Button("Zoom In") { sendPDFViewCommand(.zoomIn) }
+                    .keyboardShortcut("+", modifiers: [.command])
+                Button("Zoom Out") { sendPDFViewCommand(.zoomOut) }
+                    .keyboardShortcut("-", modifiers: [.command])
+                Button("Actual Size") { sendPDFViewCommand(.actualSize) }
+                    .keyboardShortcut("0", modifiers: [.command])
+                Button("Find in PDF") { isSearchFocused = true }
+                    .keyboardShortcut("f", modifiers: [.command])
+            }
+            .hidden()
+            .accessibilityHidden(true)
+        }
+    }
+
+    private var zoomPercentage: Int {
+        Int((pdfScaleFactor * 100).rounded())
+    }
+
+    private var pageNumberBinding: Binding<Int> {
+        Binding(
+            get: { document.pageCount == 0 ? 0 : selectedPage + 1 },
+            set: { goToPage($0 - 1) }
+        )
+    }
+
+    private func goToPage(_ index: Int) {
+        guard document.pageCount > 0 else { return }
+        selectedPage = min(max(0, index), document.pageCount - 1)
+    }
+
+    private var redactionBoundsBinding: Binding<CGRect> {
+        Binding(
+            get: {
+                CGRect(x: redactionX, y: redactionY, width: redactionWidth, height: redactionHeight)
+            },
+            set: { bounds in
+                redactionX = bounds.minX
+                redactionY = bounds.minY
+                redactionWidth = bounds.width
+                redactionHeight = bounds.height
+            }
+        )
+    }
+
+    private var placementStyle: InteractivePDFView.PlacementStyle? {
+        switch inspectorCategory {
+        case .annotation: .annotation
+        case .form: .form
+        case .redaction: .redaction
+        case .pages: nil
+        }
+    }
+
+    private var placementBoundsBinding: Binding<CGRect> {
+        switch inspectorCategory {
+        case .annotation: $annotationBounds
+        case .form: $formFieldBounds
+        case .redaction: redactionBoundsBinding
+        case .pages: .constant(.zero)
+        }
+    }
+
+    private var redactionIsValid: Bool {
+        guard document.pageCount > 0,
+              let page = document.page(at: selectedPage),
+              redactionWidth > 0,
+              redactionHeight > 0 else { return false }
+        let pageBounds = page.bounds(for: .mediaBox)
+        let bounds = redactionBoundsBinding.wrappedValue
+        return pageBounds.contains(bounds)
+    }
+
+    private var redactionValidationMessage: String {
+        guard document.pageCount > 0,
+              let page = document.page(at: selectedPage) else {
+            return "Open a PDF page before creating a redaction."
+        }
+        guard redactionWidth > 0, redactionHeight > 0 else {
+            return "The redaction must have a positive width and height."
+        }
+        let bounds = redactionBoundsBinding.wrappedValue
+        guard page.bounds(for: .mediaBox).contains(bounds) else {
+            return "The redaction must remain inside the selected page."
+        }
+        return "Redaction preview is inside Page (selectedPage + 1)."
+    }
+
+    private func sendPDFViewCommand(_ kind: PDFViewCommand.Kind) {
+        pdfViewCommand = PDFViewCommand(kind: kind)
     }
 
     private var canAddSelectedAnnotation: Bool {
         switch annotationTool {
         case .note: !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .link: URL(string: linkDestination)?.scheme != nil
+        case .link: validatedLinkDestination != nil
         case .image, .signature: importedAnnotationData != nil
         case .highlight, .rectangle, .ink: true
         }
+    }
+
+    private var validatedLinkDestination: URL? {
+        guard let components = URLComponents(string: linkDestination.trimmingCharacters(in: .whitespacesAndNewlines)),
+              let scheme = components.scheme?.lowercased(),
+              ["http", "https"].contains(scheme),
+              components.host?.isEmpty == false else { return nil }
+        return components.url
+    }
+
+    private var linkValidationMessage: String {
+        validatedLinkDestination == nil
+            ? "Enter a complete HTTP or HTTPS address, for example https://example.com."
+            : "Valid web address."
+    }
+
+    private var validatedFormFieldName: String? {
+        PDFFormOperation.normalizedFieldName(formFieldName)
+    }
+
+    private var parsedFormChoices: [String] {
+        formChoices.split(separator: ",", omittingEmptySubsequences: false).map(String.init)
+    }
+
+    private var validatedFormChoices: [String]? {
+        guard formTool == .choice else { return [] }
+        return PDFFormOperation.normalizedChoiceOptions(parsedFormChoices)
+    }
+
+    private var formFieldValidationMessage: String {
+        validatedFormFieldName == nil
+            ? "Use a descriptive name of 2 to 64 characters starting with a letter. Letters, numbers, dots, hyphens, and underscores are allowed."
+            : "Valid field name. Existing names are checked before export."
+    }
+
+    private var choiceValidationMessage: String {
+        validatedFormChoices == nil
+            ? "Enter one or more unique, non-empty choices separated by commas."
+            : "Valid choice list."
+    }
+
+    private var canAddFormField: Bool {
+        validatedFormFieldName != nil && (formTool != .choice || validatedFormChoices != nil)
+    }
+
+    @ViewBuilder
+    private func validationMessage(_ text: String, isValid: Bool, identifier: String) -> some View {
+        Label(text, systemImage: isValid ? "checkmark.circle" : "exclamationmark.triangle")
+            .font(.caption)
+            .foregroundStyle(isValid ? Color.green : Color.orange)
+            .accessibilityLabel((isValid ? "Valid: " : "Error: ") + text)
+            .accessibilityIdentifier(identifier)
     }
 
     private func movePage(by offset: Int) {
@@ -332,6 +977,7 @@ struct PDFWorkspace: View {
         guard source >= 0, source < document.pageCount,
               destination >= 0, destination < document.pageCount,
               let page = document.page(at: source) else { return }
+        registerUndoSnapshot(actionName: "Move Page")
         document.removePage(at: source)
         document.insert(page, at: destination)
         selectedPage = destination
@@ -340,12 +986,14 @@ struct PDFWorkspace: View {
 
     private func rotatePage() {
         guard let page = document.page(at: selectedPage) else { return }
+        registerUndoSnapshot(actionName: "Rotate Page")
         page.rotation = (page.rotation + 90) % 360
         refreshDocument()
     }
 
     private func duplicatePage() {
         guard let page = document.page(at: selectedPage), let copy = page.copy() as? PDFPage else { return }
+        registerUndoSnapshot(actionName: "Duplicate Page")
         document.insert(copy, at: selectedPage + 1)
         selectedPage += 1
         refreshDocument()
@@ -353,6 +1001,7 @@ struct PDFWorkspace: View {
 
     private func deletePage() {
         guard document.pageCount > 1 else { return }
+        registerUndoSnapshot(actionName: "Delete Page \(selectedPage + 1)")
         document.removePage(at: selectedPage)
         selectedPage = min(selectedPage, document.pageCount - 1)
         refreshDocument()
@@ -361,6 +1010,32 @@ struct PDFWorkspace: View {
     private func refreshDocument() {
         guard let data = document.dataRepresentation(), let copy = PDFDocument(data: data) else { return }
         document = copy
+    }
+
+    private func registerUndoSnapshot(actionName: String) {
+        guard let data = document.dataRepresentation() else { return }
+        let page = selectedPage
+        undoManager?.registerUndo(withTarget: undoTarget) { _ in
+            Task { @MainActor in
+                restoreUndoSnapshot(data, selectedPage: page, actionName: actionName)
+            }
+        }
+        undoManager?.setActionName(actionName)
+    }
+
+    private func restoreUndoSnapshot(_ data: Data, selectedPage page: Int, actionName: String) {
+        guard let restored = PDFDocument(data: data) else { return }
+        if let redoData = document.dataRepresentation() {
+            let redoPage = selectedPage
+            undoManager?.registerUndo(withTarget: undoTarget) { _ in
+                Task { @MainActor in
+                    restoreUndoSnapshot(redoData, selectedPage: redoPage, actionName: actionName)
+                }
+            }
+        }
+        document = restored
+        selectedPage = min(page, max(0, restored.pageCount - 1))
+        undoManager?.setActionName(actionName)
     }
 
     private func temporaryWorkingPDF() throws -> URL {
@@ -406,7 +1081,7 @@ struct PDFWorkspace: View {
     private func addSelectedAnnotation() {
         guard let destination = savePanel(defaultName: url.deletingPathExtension().lastPathComponent + " Annotated.pdf") else { return }
         let pageIndex = selectedPage
-        let bounds = CGRect(x: 72, y: 72, width: 240, height: 48)
+        let bounds = annotationBounds
         let kind: PDFAnnotationDescriptor.Kind
         switch annotationTool {
         case .note:
@@ -414,7 +1089,10 @@ struct PDFWorkspace: View {
         case .highlight:
             kind = .highlight
         case .link:
-            guard let destinationURL = URL(string: linkDestination) else { return }
+            guard let destinationURL = validatedLinkDestination else {
+                message = linkValidationMessage
+                return
+            }
             kind = .link(destinationURL)
         case .rectangle:
             kind = .rectangle
@@ -461,8 +1139,15 @@ struct PDFWorkspace: View {
     }
 
     private func addFormField() {
+        guard let name = validatedFormFieldName else {
+            message = formFieldValidationMessage
+            return
+        }
+        if formTool == .choice, validatedFormChoices == nil {
+            message = choiceValidationMessage
+            return
+        }
         guard let destination = savePanel(defaultName: url.deletingPathExtension().lastPathComponent + " Form.pdf") else { return }
-        let name = formFieldName
         let value = formFieldValue
         let pageIndex = selectedPage
         let fieldKind: PDFFormFieldKind
@@ -474,14 +1159,7 @@ struct PDFWorkspace: View {
         case .radioButton:
             fieldKind = .radioButton
         case .choice:
-            let options = formChoices
-                .split(separator: ",")
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-            guard !options.isEmpty else {
-                message = "Add at least one choice."
-                return
-            }
+            guard let options = validatedFormChoices else { return }
             fieldKind = .choice(options: options)
         case .signature:
             fieldKind = .signature
@@ -491,7 +1169,7 @@ struct PDFWorkspace: View {
                 .init(url: working, fields: [
                     .init(
                         pageIndex: pageIndex,
-                        bounds: CGRect(x: 72, y: 132, width: 240, height: 28),
+                        bounds: formFieldBounds,
                         name: name,
                         kind: fieldKind,
                         value: value.isEmpty ? nil : value
@@ -533,33 +1211,56 @@ struct PDFWorkspace: View {
     }
 
     private func operationContext(output: URL) -> PDFOperationContext {
-        .init(outputURL: output, reportProgress: { value in
+        .init(outputURL: output, isCancelled: {
+            Task.isCancelled
+        }, reportProgress: { value in
             Task { @MainActor in progress = value.fractionCompleted }
         })
     }
 
     private func runOperation(_ operation: @escaping (URL) async throws -> Void) {
+        operationTask?.cancel()
         isRunning = true
         progress = 0
         message = nil
-        Task {
+        operationTask = Task {
             var working: URL?
             do {
                 let temporary = try temporaryWorkingPDF()
                 working = temporary
+                try Task.checkCancellation()
                 try await operation(temporary)
             } catch {
-                await MainActor.run { isRunning = false; message = error.localizedDescription }
+                await MainActor.run {
+                    operationTask = nil
+                    isRunning = false
+                    message = cancellationMessage(for: error)
+                }
             }
             if let working { try? FileManager.default.removeItem(at: working) }
         }
     }
 
+    private func cancelOperation() {
+        operationTask?.cancel()
+        message = "Cancelling PDF operation…"
+    }
+
+    private func cancellationMessage(for error: Error) -> String {
+        if error is CancellationError || (error as? PDFOperationError) == .cancelled {
+            return "PDF operation cancelled. No final output was created."
+        }
+        return error.localizedDescription
+    }
+
     @MainActor
     private func finish(_ outputs: [URL], message newMessage: String) {
+        operationTask = nil
         isRunning = false
         progress = 1
         message = newMessage
         NSWorkspace.shared.activateFileViewerSelecting(outputs)
     }
 }
+
+private final class PDFUndoTarget: NSObject {}

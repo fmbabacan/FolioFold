@@ -6,6 +6,47 @@ import Testing
 
 @Suite("PDF conversion")
 struct PDFConversionTests {
+    @Test("conversion page estimates match generated output")
+    func conversionPageEstimatesMatchOutput() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let first = directory.appendingPathComponent("first.txt")
+        let second = directory.appendingPathComponent("second.txt")
+        let output = directory.appendingPathComponent("combined.pdf")
+        try "First page".write(to: first, atomically: true, encoding: .utf8)
+        try "Second page".write(to: second, atomically: true, encoding: .utf8)
+        let sources: [PDFConversionSource] = [.plainText(first), .plainText(second)]
+
+        let estimate = try PDFConvertOperation.estimatedPageCount(for: sources)
+        _ = try await PDFConvertOperation().run(.init(sources: sources), context: .init(outputURL: output))
+
+        #expect(estimate == 2)
+        #expect(PDFDocument(url: output)?.pageCount == estimate)
+    }
+
+    @Test("sources can be converted independently into separate PDFs")
+    func convertsSourcesSeparately() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let first = directory.appendingPathComponent("first.txt")
+        let second = directory.appendingPathComponent("second.txt")
+        try "First".write(to: first, atomically: true, encoding: .utf8)
+        try "Second".write(to: second, atomically: true, encoding: .utf8)
+
+        let firstOutput = directory.appendingPathComponent("first.pdf")
+        let secondOutput = directory.appendingPathComponent("second.pdf")
+        _ = try await PDFConvertOperation().run(
+            .init(sources: [.plainText(first)]),
+            context: .init(outputURL: firstOutput)
+        )
+        _ = try await PDFConvertOperation().run(
+            .init(sources: [.plainText(second)]),
+            context: .init(outputURL: secondOutput)
+        )
+
+        #expect(PDFDocument(url: firstOutput)?.pageCount == 1)
+        #expect(PDFDocument(url: secondOutput)?.pageCount == 1)
+    }
     @Test("plain text converts to a verified PDF")
     func convertsPlainText() async throws {
         let directory = try temporaryDirectory()

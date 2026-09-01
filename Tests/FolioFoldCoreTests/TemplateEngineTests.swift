@@ -74,6 +74,21 @@ struct TemplateEngineTests {
         }
     }
 
+    @Test("safe sequence examples preserve prefixes padding and literal percent signs")
+    func safeSequenceExamplesRender() throws {
+        let field = TemplateField(name: "Invoice", kind: .sequence, format: "INV-%%-%04d")
+        var document = FolioDocument.blank()
+        document.templateFields = [field]
+        document.flow = [Block(templateFieldID: field.id)]
+
+        let result = try TemplateEngine(locale: Locale(identifier: "en_US_POSIX")).render(
+            document: document,
+            sequenceNumber: 23
+        )
+
+        #expect(result.document.flow.first?.text == "INV-%-0023")
+    }
+
     @Test("duplicate names are rejected case insensitively")
     func rejectsDuplicateNames() {
         var document = FolioDocument.blank()
