@@ -1016,7 +1016,9 @@ struct PDFWorkspace: View {
         guard let data = document.dataRepresentation() else { return }
         let page = selectedPage
         undoManager?.registerUndo(withTarget: undoTarget) { _ in
-            restoreUndoSnapshot(data, selectedPage: page, actionName: actionName)
+            Task { @MainActor in
+                restoreUndoSnapshot(data, selectedPage: page, actionName: actionName)
+            }
         }
         undoManager?.setActionName(actionName)
     }
@@ -1026,7 +1028,9 @@ struct PDFWorkspace: View {
         if let redoData = document.dataRepresentation() {
             let redoPage = selectedPage
             undoManager?.registerUndo(withTarget: undoTarget) { _ in
-                restoreUndoSnapshot(redoData, selectedPage: redoPage, actionName: actionName)
+                Task { @MainActor in
+                    restoreUndoSnapshot(redoData, selectedPage: redoPage, actionName: actionName)
+                }
             }
         }
         document = restored
